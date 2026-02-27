@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "davinci-resolve-mcp"
+version = "0.1.0"
+description = "Complete MCP server for DaVinci Resolve's Scripting API — 175+ tools covering every module."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Lucas Sánchez", email = "lucas@acadevor.com" },
+]
+keywords = ["davinci-resolve", "mcp", "model-context-protocol", "video-editing", "color-grading"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "fastmcp>=2.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+davinci-resolve-mcp = "davinci_resolve_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/lucasacadevor/davinci-resolve-mcp"
+Repository = "https://github.com/lucasacadevor/davinci-resolve-mcp"
+Issues = "https://github.com/lucasacadevor/davinci-resolve-mcp/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/davinci_resolve_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires DaVinci Resolve running",
+]
