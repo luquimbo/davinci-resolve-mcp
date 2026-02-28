@@ -689,6 +689,11 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the clips were appended successfully.
         """
+        if not clip_names:
+            raise ResolveOperationFailed(
+                "timeline_append_clips",
+                "clip_names list cannot be empty.",
+            )
         try:
             api = ResolveAPI.get_instance()
             pool = api.media_pool

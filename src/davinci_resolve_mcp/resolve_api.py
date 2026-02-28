@@ -150,7 +150,7 @@ class ResolveAPI:
                     self._resolve.GetVersion()
                     self._last_health_check = now
                     return self._resolve
-                except Exception:
+                except (AttributeError, RuntimeError, OSError):
                     # Stale reference — reconnect
                     self._resolve = None
 

@@ -304,7 +304,7 @@ def register(mcp: FastMCP) -> None:
         except Exception as exc:
             raise ResolveOperationFailed("clip_set_color", str(exc)) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def clip_clear_color(clip_name: str) -> bool:
         """Remove the label color from a clip, resetting it to the default.
 
@@ -491,7 +491,7 @@ def register(mcp: FastMCP) -> None:
         except Exception as exc:
             raise ResolveOperationFailed("clip_get_flags", str(exc)) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def clip_clear_flags(clip_name: str, color: str) -> bool:
         """Remove a specific flag color from a clip.
 

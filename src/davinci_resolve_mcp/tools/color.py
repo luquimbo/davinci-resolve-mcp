@@ -90,6 +90,11 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the LUT was applied successfully.
         """
+        if node_index < 1:
+            raise ResolveOperationFailed(
+                "color_set_lut",
+                "node_index must be >= 1 (1-based indexing).",
+            )
         try:
             item = find_item(item_name, track_type, track_index)
             # SetLUT(nodeIndex, lutPath) returns True on success
@@ -130,6 +135,11 @@ def register(mcp: FastMCP) -> None:
         Returns:
             The absolute path to the applied LUT, or "" if none is set.
         """
+        if node_index < 1:
+            raise ResolveOperationFailed(
+                "color_get_lut",
+                "node_index must be >= 1 (1-based indexing).",
+            )
         try:
             item = find_item(item_name, track_type, track_index)
             # GetLUT(nodeIndex) returns the LUT path string or ""
@@ -317,6 +327,11 @@ def register(mcp: FastMCP) -> None:
             scripting API does not support per-node enable/disable in the
             current version.
         """
+        if node_index < 1:
+            raise ResolveOperationFailed(
+                "color_set_node_enabled",
+                "node_index must be >= 1 (1-based indexing).",
+            )
         try:
             item = find_item(item_name, track_type, track_index)
             # SetNodeEnabled() may not be available in all Resolve versions;

@@ -581,7 +581,7 @@ def register(mcp: FastMCP) -> None:
         except Exception as exc:
             raise ResolveOperationFailed("item_get_markers", str(exc)) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def item_delete_marker(
         item_name: str,
         frame_id: int,
