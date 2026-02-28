@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-02-27
 
 ### Added
-- Initial release with 175 tools across 12 domains
+- Initial release with 189 tools across 12 domains
 - **Phase 1 (Core)**: Playback, project, media storage, media pool, clips, timeline, timeline items, render
-- **Phase 2 (Color + Fusion)**: Color grading (nodes, LUTs, CDL, grade versions, color groups), Fusion (compositions, generators, titles, tool listing)
+- **Phase 2 (Color + Fusion)**: Color grading (nodes, LUTs, CDL, grade versions, color groups, node labels), Fusion (compositions, generators, titles, tool listing)
 - **Phase 3 (Gallery + Fairlight)**: Gallery (still albums, PowerGrades, grab/import/export), Fairlight (audio insertion, presets)
-- **Advanced**: Timeline export (AAF/EDL/FCPXML/OTIO), compound clips, Fusion clips, audio transcription, takes management, database folder CRUD, unique item IDs
+- **Advanced**: Timeline export (AAF/EDL/FCPXML/OTIO), compound clips, Fusion clips, audio transcription, takes management, database folder CRUD, unique item IDs, scene detection, auto-subtitles, stabilization, smart reframe, project archive/restore, database listing, clip replacement, proxy unlinking
 - 3 MCP resources: `resolve://system`, `resolve://project`, `resolve://timeline`
 - Lazy singleton connection with auto-reconnect on stale references
 - Thread-safe connection management with RLock

@@ -1,11 +1,11 @@
 """Timeline tools — CRUD, tracks, items, markers, export, and clip operations.
 
-Provides 25 tools for full control over DaVinci Resolve timelines: querying and
+Provides 29 tools for full control over DaVinci Resolve timelines: querying and
 switching the current timeline, renaming, inspecting frame ranges, managing
 video/audio/subtitle tracks (add, delete, rename, enable, lock), listing items
 within tracks with pagination, appending and deleting clips, duplicating timelines,
-managing frame markers, exporting to various formats (AAF/EDL/FCPXML), and
-creating compound/Fusion clips.
+managing frame markers, exporting to various formats (AAF/EDL/FCPXML), creating
+compound/Fusion clips, scene detection, auto-subtitles, and timeline settings.
 """
 
 from __future__ import annotations
@@ -1210,4 +1210,156 @@ def register(mcp: FastMCP) -> None:
         except Exception as exc:
             raise ResolveOperationFailed(
                 "timeline_create_fusion_clip", str(exc)
+            ) from exc
+
+    # ------------------------------------------------------------------
+    # Scene detection, subtitles, and timeline settings
+    # ------------------------------------------------------------------
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def timeline_detect_scene_cuts() -> list[int]:
+        """Detect scene cuts in the current timeline.
+
+        Analyzes the video content and returns frame numbers where scene
+        transitions were detected.  Requires DaVinci Resolve 18.5 or later.
+
+        Returns:
+            A list of frame numbers where cuts were detected.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_detect_scene_cuts",
+                    "No timeline is currently open.",
+                )
+
+            # DetectSceneCuts() returns a list of frame numbers
+            result = tl.DetectSceneCuts()
+            return result if result else []
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveOperationFailed(
+                "timeline_detect_scene_cuts",
+                "DetectSceneCuts is not available. Requires DaVinci Resolve 18.5 or later.",
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "timeline_detect_scene_cuts", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def timeline_create_subtitles_from_audio() -> bool:
+        """Auto-generate subtitles from audio in the current timeline.
+
+        Uses Resolve's built-in speech-to-text to create subtitle track
+        items.  Requires DaVinci Resolve 18.5 or later.
+
+        Returns:
+            True if subtitles were generated successfully.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_create_subtitles_from_audio",
+                    "No timeline is currently open.",
+                )
+
+            # CreateSubtitlesFromAudio() returns True on success
+            result: bool = tl.CreateSubtitlesFromAudio()
+            if not result:
+                raise ResolveOperationFailed(
+                    "timeline_create_subtitles_from_audio",
+                    "Resolve failed to generate subtitles from audio.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveOperationFailed(
+                "timeline_create_subtitles_from_audio",
+                "CreateSubtitlesFromAudio is not available. Requires DaVinci Resolve 18.5 or later.",
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "timeline_create_subtitles_from_audio", str(exc)
+            ) from exc
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def timeline_get_setting(key: str) -> str:
+        """Read a timeline-specific setting by key.
+
+        Args:
+            key: The setting key name (e.g. "timelineFrameRate",
+                "timelineResolutionWidth", "timelineResolutionHeight").
+
+        Returns:
+            The setting value as a string.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_get_setting",
+                    "No timeline is currently open.",
+                )
+
+            # GetSetting(key) returns the value as a string
+            result = tl.GetSetting(key)
+            return result if result is not None else ""
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "timeline_get_setting", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def timeline_set_setting(key: str, value: str) -> bool:
+        """Write a timeline-specific setting.
+
+        Args:
+            key: The setting key name (e.g. "timelineFrameRate",
+                "timelineResolutionWidth", "timelineResolutionHeight").
+            value: The value to set (as a string).
+
+        Returns:
+            True if the setting was applied.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_set_setting",
+                    "No timeline is currently open.",
+                )
+
+            # SetSetting(key, value) returns True on success
+            result: bool = tl.SetSetting(key, value)
+            if not result:
+                raise ResolveOperationFailed(
+                    "timeline_set_setting",
+                    f"Failed to set timeline setting '{key}' to '{value}'. "
+                    "The key may be invalid or the value not accepted.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "timeline_set_setting", str(exc)
             ) from exc

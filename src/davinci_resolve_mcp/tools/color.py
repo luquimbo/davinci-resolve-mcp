@@ -951,3 +951,93 @@ def register(mcp: FastMCP) -> None:
             raise ResolveOperationFailed(
                 "color_remove_from_group", str(exc)
             ) from exc
+
+    # ==================================================================
+    # Node labels
+    # ==================================================================
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def color_get_node_label(
+        item_name: str,
+        node_index: int,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> str:
+        """Get the label of a specific color correction node.
+
+        Args:
+            item_name:   Exact name of the timeline clip.
+            node_index:  1-based index of the node to query.
+            track_type:  Track type (default "video").
+            track_index: 1-based track number (default 1).
+
+        Returns:
+            The label string for the node, or "" if none is set.
+        """
+        if node_index < 1:
+            raise ResolveOperationFailed(
+                "color_get_node_label",
+                "node_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            item = find_item(item_name, track_type, track_index)
+            # GetNodeLabel(nodeIndex) returns the label string for the node
+            label: str = item.GetNodeLabel(node_index) or ""
+            return label
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "color_get_node_label", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def color_set_node_label(
+        item_name: str,
+        node_index: int,
+        label: str,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Set the label on a specific color correction node.
+
+        Args:
+            item_name:   Exact name of the timeline clip.
+            node_index:  1-based index of the node to label.
+            label:       Label string to assign to the node.
+            track_type:  Track type (default "video").
+            track_index: 1-based track number (default 1).
+
+        Returns:
+            True if the label was set successfully.
+        """
+        if node_index < 1:
+            raise ResolveOperationFailed(
+                "color_set_node_label",
+                "node_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            item = find_item(item_name, track_type, track_index)
+            # SetNodeLabel(nodeIndex, label) assigns a label to the node
+            result: bool = item.SetNodeLabel(node_index, label)
+            if not result:
+                raise ResolveOperationFailed(
+                    "color_set_node_label",
+                    f"Failed to set label '{label}' on node {node_index} "
+                    f"of item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "color_set_node_label", str(exc)
+            ) from exc

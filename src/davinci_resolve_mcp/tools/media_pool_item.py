@@ -1,6 +1,6 @@
 """Media-pool clip tools — metadata, markers, flags, proxy, transcription, and properties.
 
-Provides 19 tools to inspect and modify clips in the current media-pool folder.
+Provides 21 tools to inspect and modify clips in the current media-pool folder.
 Clips are identified by display name; a module-level helper searches the active
 folder's clip list so every tool receives a resolved Resolve MediaPoolItem object.
 """
@@ -639,3 +639,69 @@ def register(mcp: FastMCP) -> None:
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("clip_link_proxy", str(exc)) from exc
+
+    # ==============================================================
+    # Replace clip media
+    # ==============================================================
+
+    @mcp.tool()
+    def clip_replace(clip_name: str, new_file_path: str) -> bool:
+        """Replace a clip's media file with a new file.
+
+        Args:
+            clip_name:     Name of the clip whose media to replace.
+            new_file_path: Absolute file-system path to the replacement media file.
+
+        Returns:
+            True if the replacement succeeded.
+        """
+        try:
+            clip = _find_clip(clip_name)
+            result: bool = clip.ReplaceClip(new_file_path)
+            if not result:
+                raise ResolveOperationFailed(
+                    "clip_replace",
+                    f"Failed to replace media for clip '{clip_name}' "
+                    f"with '{new_file_path}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"ReplaceClip may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("clip_replace", str(exc)) from exc
+
+    # ==============================================================
+    # Unlink proxy media
+    # ==============================================================
+
+    @mcp.tool(annotations={"destructiveHint": True})
+    def clip_unlink_proxy(clip_name: str) -> bool:
+        """Remove proxy media link from a clip.
+
+        Args:
+            clip_name: Name of the clip whose proxy link to remove.
+
+        Returns:
+            True if the proxy was unlinked successfully.
+        """
+        try:
+            clip = _find_clip(clip_name)
+            result: bool = clip.UnlinkProxyMedia()
+            if not result:
+                raise ResolveOperationFailed(
+                    "clip_unlink_proxy",
+                    f"Failed to unlink proxy media from clip '{clip_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("clip_unlink_proxy", str(exc)) from exc

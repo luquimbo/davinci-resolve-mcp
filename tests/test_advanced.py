@@ -336,3 +336,195 @@ async def test_track_index_validation(mcp_server: Client):
             "item_names": ["Clip A"],
             "track_index": 0,
         })
+
+
+# ===================================================================
+# Scene Detection & Auto-Subtitles (timeline.py)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_timeline_detect_scene_cuts(mcp_server: Client):
+    """timeline_detect_scene_cuts returns frame numbers of scene transitions."""
+    result = await mcp_server.call_tool("timeline_detect_scene_cuts", {})
+    cuts = extract_data(result)
+    assert isinstance(cuts, list)
+    assert cuts == [100, 250, 500]
+
+
+@pytest.mark.asyncio
+async def test_timeline_create_subtitles_from_audio(mcp_server: Client):
+    """timeline_create_subtitles_from_audio generates subtitles."""
+    result = await mcp_server.call_tool("timeline_create_subtitles_from_audio", {})
+    assert extract_data(result) is True
+
+
+# ===================================================================
+# Timeline Settings (timeline.py)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_timeline_get_setting(mcp_server: Client):
+    """timeline_get_setting reads a timeline setting by key."""
+    result = await mcp_server.call_tool("timeline_get_setting", {
+        "key": "timelineFrameRate",
+    })
+    value = extract_data(result)
+    # MockTimeline.GetSetting returns "24" if "Rate" is in the key
+    assert value == "24"
+
+
+@pytest.mark.asyncio
+async def test_timeline_set_setting(mcp_server: Client):
+    """timeline_set_setting writes a timeline setting."""
+    result = await mcp_server.call_tool("timeline_set_setting", {
+        "key": "timelineFrameRate",
+        "value": "30",
+    })
+    assert extract_data(result) is True
+
+
+# ===================================================================
+# Stabilize & Smart Reframe (timeline_item.py)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_item_stabilize(mcp_server: Client):
+    """item_stabilize runs stabilization analysis on a clip."""
+    result = await mcp_server.call_tool("item_stabilize", {
+        "item_name": "Clip A",
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_item_smart_reframe(mcp_server: Client):
+    """item_smart_reframe applies smart reframe with valid settings."""
+    result = await mcp_server.call_tool("item_smart_reframe", {
+        "item_name": "Clip A",
+        "target_ratio": "9:16",
+        "motion_estimation": "better",
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_item_smart_reframe_invalid_motion(mcp_server: Client):
+    """item_smart_reframe rejects invalid motion_estimation."""
+    with pytest.raises(Exception, match="Invalid motion_estimation"):
+        await mcp_server.call_tool("item_smart_reframe", {
+            "item_name": "Clip A",
+            "motion_estimation": "ultra",
+        })
+
+
+@pytest.mark.asyncio
+async def test_item_add_node(mcp_server: Client):
+    """item_add_node adds a color correction node."""
+    result = await mcp_server.call_tool("item_add_node", {
+        "item_name": "Clip A",
+    })
+    assert extract_data(result) is True
+
+
+# ===================================================================
+# Node Labels (color.py)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_color_get_node_label(mcp_server: Client):
+    """color_get_node_label returns the label for a node."""
+    result = await mcp_server.call_tool("color_get_node_label", {
+        "item_name": "Clip A",
+        "node_index": 1,
+    })
+    label = extract_data(result)
+    assert label == "Node 1"
+
+
+@pytest.mark.asyncio
+async def test_color_set_node_label(mcp_server: Client):
+    """color_set_node_label sets a label on a node."""
+    result = await mcp_server.call_tool("color_set_node_label", {
+        "item_name": "Clip A",
+        "node_index": 1,
+        "label": "Primary Grade",
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_color_node_label_index_validation(mcp_server: Client):
+    """color_get_node_label rejects node_index < 1."""
+    with pytest.raises(Exception, match="node_index must be >= 1"):
+        await mcp_server.call_tool("color_get_node_label", {
+            "item_name": "Clip A",
+            "node_index": 0,
+        })
+
+
+# ===================================================================
+# Replace Clip & Unlink Proxy (media_pool_item.py)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_clip_replace(mcp_server: Client):
+    """clip_replace replaces a clip's media file."""
+    result = await mcp_server.call_tool("clip_replace", {
+        "clip_name": "clip01",
+        "new_file_path": "/media/replacement.mov",
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_clip_unlink_proxy(mcp_server: Client):
+    """clip_unlink_proxy removes proxy link from a clip."""
+    result = await mcp_server.call_tool("clip_unlink_proxy", {
+        "clip_name": "clip01",
+    })
+    assert extract_data(result) is True
+
+
+# ===================================================================
+# Project Archive & Database List (project.py)
+# ===================================================================
+
+@pytest.mark.asyncio
+async def test_project_archive(mcp_server: Client):
+    """project_archive archives a project to .dra file."""
+    result = await mcp_server.call_tool("project_archive", {
+        "name": "Test Project",
+        "file_path": "/tmp/backup.dra",
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_project_archive_without_stills(mcp_server: Client):
+    """project_archive works without stills and LUTs."""
+    result = await mcp_server.call_tool("project_archive", {
+        "name": "Test Project",
+        "file_path": "/tmp/backup.dra",
+        "with_stills_and_luts": False,
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_project_restore_archive(mcp_server: Client):
+    """project_restore_archive restores from .dra archive."""
+    result = await mcp_server.call_tool("project_restore_archive", {
+        "file_path": "/tmp/backup.dra",
+    })
+    assert extract_data(result) is True
+
+
+@pytest.mark.asyncio
+async def test_project_get_database_list(mcp_server: Client):
+    """project_get_database_list returns available databases."""
+    result = await mcp_server.call_tool("project_get_database_list", {})
+    db_list = extract_data(result)
+    assert isinstance(db_list, list)
+    assert len(db_list) == 2
+    assert db_list[0]["DbType"] == "Disk"
+    assert db_list[1]["DbType"] == "PostgreSQL"

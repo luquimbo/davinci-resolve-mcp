@@ -587,3 +587,107 @@ def register(mcp: FastMCP) -> None:
             raise ResolveOperationFailed(
                 "project_get_database", str(exc)
             ) from exc
+
+    # ------------------------------------------------------------------
+    # Archive / Restore
+    # ------------------------------------------------------------------
+
+    @mcp.tool()
+    def project_archive(
+        name: str, file_path: str, with_stills_and_luts: bool = True,
+    ) -> bool:
+        """Archive a project to a .dra file.
+
+        The project must NOT be currently open.
+
+        Args:
+            name: Exact name of the project to archive.
+            file_path: Absolute destination path (should end in .dra).
+            with_stills_and_luts: If True (default), include stills and LUTs
+                                  in the archive.
+
+        Returns:
+            True if the archive succeeded.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            # ArchiveProject() returns True on success
+            result: bool = pm.ArchiveProject(name, file_path, with_stills_and_luts)
+            if not result:
+                raise ResolveOperationFailed(
+                    "project_archive",
+                    f"Could not archive project '{name}' to '{file_path}'. "
+                    "Ensure the project exists and is not currently open.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("project_archive", str(exc)) from exc
+
+    @mcp.tool()
+    def project_restore_archive(file_path: str) -> bool:
+        """Restore a project from a .dra archive file.
+
+        Args:
+            file_path: Absolute path to the .dra archive file.
+
+        Returns:
+            True if the restore succeeded.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            # RestoreProject() returns True on success
+            result: bool = pm.RestoreProject(file_path)
+            if not result:
+                raise ResolveOperationFailed(
+                    "project_restore_archive",
+                    f"Could not restore project from '{file_path}'. "
+                    "Check the path and file format (.dra).",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "project_restore_archive", str(exc)
+            ) from exc
+
+    # ------------------------------------------------------------------
+    # Database list
+    # ------------------------------------------------------------------
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def project_get_database_list() -> list[dict]:
+        """List all available project databases.
+
+        Returns:
+            A list of dicts, each with keys like "DbType", "DbName",
+            and optionally "IpAddress" for remote databases.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            # GetDatabaseList() returns a list of database info dicts
+            db_list = pm.GetDatabaseList()
+            return db_list if isinstance(db_list, list) else []
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"GetDatabaseList may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "project_get_database_list", str(exc)
+            ) from exc

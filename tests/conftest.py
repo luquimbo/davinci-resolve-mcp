@@ -195,6 +195,12 @@ class MockMediaPoolItem:
     def LinkProxyMedia(self, path: str) -> bool:
         return True
 
+    def ReplaceClip(self, path: str) -> bool:
+        return True
+
+    def UnlinkProxyMedia(self) -> bool:
+        return True
+
     def TranscribeAudio(self) -> bool:
         return True
 
@@ -400,6 +406,21 @@ class MockTimelineItem:
     def DeleteTakeByIndex(self, idx: int) -> bool:
         return idx <= 2
 
+    def Stabilize(self) -> bool:
+        return True
+
+    def SmartReframe(self, settings: dict) -> bool:
+        return True
+
+    def AddNode(self) -> bool:
+        return True
+
+    def GetNodeLabel(self, index: int) -> str:
+        return f"Node {index}"
+
+    def SetNodeLabel(self, index: int, label: str) -> bool:
+        return True
+
 
 class MockTimeline:
     """Simulates a DaVinci Resolve timeline object."""
@@ -493,6 +514,18 @@ class MockTimeline:
 
     def CreateFusionClip(self, items: list) -> Any:
         return MockTimelineItem("Fusion Clip")
+
+    def DetectSceneCuts(self) -> list[int]:
+        return [100, 250, 500]
+
+    def CreateSubtitlesFromAudio(self) -> bool:
+        return True
+
+    def GetSetting(self, key: str) -> str:
+        return "24" if "Rate" in key else "1920"
+
+    def SetSetting(self, key: str, value: str) -> bool:
+        return True
 
 
 class MockMediaPool:
@@ -710,6 +743,18 @@ class MockProjectManager:
 
     def GetCurrentDatabase(self) -> dict:
         return {"DbType": "Disk", "DbName": "Local Database"}
+
+    def ArchiveProject(self, name: str, path: str, with_stills: bool = True) -> bool:
+        return True
+
+    def RestoreProject(self, path: str) -> bool:
+        return True
+
+    def GetDatabaseList(self) -> list[dict]:
+        return [
+            {"DbType": "Disk", "DbName": "Local Database"},
+            {"DbType": "PostgreSQL", "DbName": "Remote DB", "IpAddress": "192.168.1.100"},
+        ]
 
 
 class MockResolve:

@@ -996,3 +996,139 @@ def register(mcp: FastMCP) -> None:
             raise ResolveOperationFailed(
                 "item_delete_take_by_index", str(exc)
             ) from exc
+
+    # ==============================================================
+    # Stabilization (Resolve 18+)
+    # ==============================================================
+
+    @mcp.tool()
+    def item_stabilize(
+        item_name: str,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Run stabilization analysis on a timeline item.
+
+        Args:
+            item_name:   Name of the item.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            True if the stabilization analysis completed successfully.
+        """
+        try:
+            item = find_item(item_name, track_type, track_index)
+            result: bool = item.Stabilize()
+            if not result:
+                raise ResolveOperationFailed(
+                    "item_stabilize",
+                    f"Failed to stabilize item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Stabilize may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_stabilize", str(exc)
+            ) from exc
+
+    # ==============================================================
+    # Smart Reframe (Resolve 18+)
+    # ==============================================================
+
+    @mcp.tool()
+    def item_smart_reframe(
+        item_name: str,
+        target_ratio: str = "9:16",
+        motion_estimation: str = "normal",
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Apply smart reframe to a timeline item.
+
+        Args:
+            item_name:          Name of the item.
+            target_ratio:       Target aspect ratio string (e.g. "9:16", "1:1").
+            motion_estimation:  Quality of motion estimation — one of
+                                "faster", "normal", or "better".
+            track_type:         Track type — "video" or "audio".
+            track_index:        1-based track number.
+
+        Returns:
+            True if the smart reframe was applied successfully.
+        """
+        # Validate motion_estimation before hitting the API
+        valid_modes = {"faster", "normal", "better"}
+        if motion_estimation not in valid_modes:
+            raise ResolveOperationFailed(
+                "item_smart_reframe",
+                f"Invalid motion_estimation '{motion_estimation}'. "
+                f"Must be one of: {', '.join(sorted(valid_modes))}.",
+            )
+
+        try:
+            item = find_item(item_name, track_type, track_index)
+            result: bool = item.SmartReframe(
+                {"targetRatio": target_ratio, "motionEstimation": motion_estimation}
+            )
+            if not result:
+                raise ResolveOperationFailed(
+                    "item_smart_reframe",
+                    f"Failed to apply smart reframe on item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"SmartReframe may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_smart_reframe", str(exc)
+            ) from exc
+
+    # ==============================================================
+    # Add color correction node
+    # ==============================================================
+
+    @mcp.tool()
+    def item_add_node(
+        item_name: str,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Add a color correction node to the timeline item's node graph.
+
+        Args:
+            item_name:   Name of the item.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            True if a new node was added.
+        """
+        try:
+            item = find_item(item_name, track_type, track_index)
+            result: bool = item.AddNode()
+            if not result:
+                raise ResolveOperationFailed(
+                    "item_add_node",
+                    f"Failed to add node on item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_add_node", str(exc)
+            ) from exc
