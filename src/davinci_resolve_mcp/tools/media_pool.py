@@ -395,6 +395,10 @@ def register(mcp: FastMCP) -> None:
 
         Returns the name of the created timeline.
         """
+        # Validate the timeline name before calling Resolve
+        if not name or not name.strip():
+            raise ResolveOperationFailed("media_pool_create_timeline", "Timeline name cannot be empty.")
+
         try:
             pool = _require_pool()
             timeline = pool.CreateEmptyTimeline(name)
@@ -434,6 +438,10 @@ def register(mcp: FastMCP) -> None:
 
         Returns the name of the created timeline.
         """
+        # Validate the timeline name before calling Resolve
+        if not name or not name.strip():
+            raise ResolveOperationFailed("media_pool_create_timeline_from_clips", "Timeline name cannot be empty.")
+
         try:
             pool = _require_pool()
             folder = _require_current_folder()

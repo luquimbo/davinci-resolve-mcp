@@ -280,13 +280,13 @@ def register(mcp: FastMCP) -> None:
                 )
             return True
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveOperationFailed(
                 "gallery_create_album",
                 "CreateGalleryStillAlbum() is not available in this Resolve version.",
             ) from exc
-        except (ResolveNotRunning, ResolveOperationFailed):
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_create_album", str(exc)
@@ -317,13 +317,13 @@ def register(mcp: FastMCP) -> None:
                 )
             return True
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveOperationFailed(
                 "gallery_delete_album",
                 "DeleteGalleryStillAlbum() is not available in this Resolve version.",
             ) from exc
-        except (ResolveNotRunning, ResolveOperationFailed):
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_delete_album", str(exc)
@@ -734,13 +734,13 @@ def register(mcp: FastMCP) -> None:
                 return []
             return [_get_album_name(a) for a in albums]
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveOperationFailed(
                 "gallery_get_powergrade_albums",
                 "GetGalleryPowerGradeAlbums() is not available in this Resolve version.",
             ) from exc
-        except (ResolveNotRunning, ResolveOperationFailed):
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_get_powergrade_albums", str(exc)
@@ -814,13 +814,13 @@ def register(mcp: FastMCP) -> None:
                 )
             return True
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveOperationFailed(
                 "gallery_set_current_powergrade_album",
                 "SetCurrentPowerGradeAlbum() is not available in this Resolve version.",
             ) from exc
-        except (ResolveNotRunning, ResolveOperationFailed):
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_set_current_powergrade_album", str(exc)

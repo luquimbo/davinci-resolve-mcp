@@ -13,9 +13,7 @@ from fastmcp import FastMCP
 
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
 from ..resolve_api import ResolveAPI
-
-# Valid track types accepted by the Resolve scripting API
-_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
+from ._helpers import VALID_TRACK_TYPES
 
 
 def register(mcp: FastMCP) -> None:
@@ -298,10 +296,10 @@ def register(mcp: FastMCP) -> None:
             track_type: One of "video", "audio", or "subtitle".
                         Defaults to "video".
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_get_track_count",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         try:
             api = ResolveAPI.get_instance()
@@ -334,10 +332,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if all requested tracks were added successfully.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_add_track",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         try:
             api = ResolveAPI.get_instance()
@@ -378,10 +376,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the track was deleted.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_delete_track",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         if track_index < 1:
             raise ResolveOperationFailed("timeline_delete_track", "track_index must be >= 1 (1-based indexing).")
@@ -420,10 +418,10 @@ def register(mcp: FastMCP) -> None:
             track_type: One of "video", "audio", or "subtitle".
             track_index: 1-based index of the track.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_get_track_name",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         if track_index < 1:
             raise ResolveOperationFailed("timeline_get_track_name", "track_index must be >= 1 (1-based indexing).")
@@ -459,10 +457,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the rename succeeded.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_set_track_name",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         if track_index < 1:
             raise ResolveOperationFailed("timeline_set_track_name", "track_index must be >= 1 (1-based indexing).")
@@ -508,10 +506,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the operation succeeded.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_set_track_enabled",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         if track_index < 1:
             raise ResolveOperationFailed("timeline_set_track_enabled", "track_index must be >= 1 (1-based indexing).")
@@ -556,10 +554,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the operation succeeded.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_set_track_locked",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         if track_index < 1:
             raise ResolveOperationFailed("timeline_set_track_locked", "track_index must be >= 1 (1-based indexing).")
@@ -610,10 +608,10 @@ def register(mcp: FastMCP) -> None:
             A dict with keys: items (list of {name, start, end, duration}),
             total, offset, limit, has_more.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_get_items_in_track",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
         if track_index < 1:
             raise ResolveOperationFailed("timeline_get_items_in_track", "track_index must be >= 1 (1-based indexing).")
@@ -769,11 +767,13 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the items were deleted.
         """
-        if track_type not in _VALID_TRACK_TYPES:
+        if track_type not in VALID_TRACK_TYPES:
             raise ResolveOperationFailed(
                 "timeline_delete_clips",
-                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
             )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_delete_clips", "track_index must be >= 1 (1-based indexing).")
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline

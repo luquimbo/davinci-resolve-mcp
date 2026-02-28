@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from fastmcp import FastMCP
 
+from ..constants import ResolvePage
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
 from ..resolve_api import ResolveAPI
 
-# Valid Resolve workspace pages — used for input validation
-_VALID_PAGES = {"media", "cut", "edit", "fusion", "color", "fairlight", "deliver"}
+# Derive valid pages from the ResolvePage enum so they stay in sync automatically
+_VALID_PAGES = {p.value for p in ResolvePage}
 
 
 def register(mcp: FastMCP) -> None:
@@ -36,6 +37,8 @@ def register(mcp: FastMCP) -> None:
             # GetCurrentPage() returns a lowercase string like "edit"
             page: str = api.resolve.GetCurrentPage() or ""
             return page
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             # Stale scripting bridge reference — Resolve may have restarted
             raise ResolveNotRunning(
@@ -177,6 +180,8 @@ def register(mcp: FastMCP) -> None:
                 "end": item.GetEnd(),
                 "duration": item.GetDuration(),
             }
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."
@@ -204,6 +209,8 @@ def register(mcp: FastMCP) -> None:
             if isinstance(raw, (list, tuple)):
                 return ".".join(str(part) for part in raw)
             return str(raw)
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."
@@ -221,6 +228,8 @@ def register(mcp: FastMCP) -> None:
             api = ResolveAPI.get_instance()
             name: str = api.resolve.GetProductName()
             return name
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."

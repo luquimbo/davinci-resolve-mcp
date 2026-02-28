@@ -19,91 +19,7 @@ from fastmcp import FastMCP
 
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
 from ..resolve_api import ResolveAPI
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _require_timeline() -> Any:
-    """Return the current timeline or raise if none is open.
-
-    Centralises the repeated "get API -> get timeline -> None check"
-    boilerplate so each tool doesn't have to duplicate it.
-    """
-    api = ResolveAPI.get_instance()
-    timeline = api.timeline
-    if timeline is None:
-        raise ResolveOperationFailed(
-            "_require_timeline",
-            "No timeline is currently open.",
-        )
-    return timeline
-
-
-_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
-
-
-def _find_item(
-    name: str,
-    track_type: str = "video",
-    track_index: int = 1,
-) -> Any:
-    """Locate a timeline item by name on the given track.
-
-    Args:
-        name:        Exact clip name to search for.
-        track_type:  Track type — "video", "audio", or "subtitle".
-        track_index: 1-based track number within the track type.
-
-    Returns:
-        The first TimelineItem whose GetName() matches *name*.
-
-    Raises:
-        ResolveOperationFailed: If the track type is invalid, the track
-            index is out of range, or the item cannot be found.
-    """
-    # Validate track_type and track_index before hitting the Resolve API
-    if track_type not in _VALID_TRACK_TYPES:
-        raise ResolveOperationFailed(
-            "_find_item",
-            f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}.",
-        )
-    if track_index < 1:
-        raise ResolveOperationFailed(
-            "_find_item",
-            f"track_index must be >= 1, got {track_index}.",
-        )
-
-    timeline = _require_timeline()
-
-    # GetItemListInTrack() returns a list of TimelineItem objects or None
-    items = timeline.GetItemListInTrack(track_type, track_index)
-    if items:
-        for item in items:
-            if item.GetName() == name:
-                return item
-
-    raise ResolveOperationFailed(
-        "_find_item",
-        f"Item '{name}' not found on {track_type} track {track_index}.",
-    )
-
-
-def _require_media_pool() -> Any:
-    """Return the MediaPool object or raise if unavailable.
-
-    Used by generator/title insertion tools that operate on the pool
-    rather than on individual timeline items.
-    """
-    api = ResolveAPI.get_instance()
-    pool = api.media_pool
-    if pool is None:
-        raise ResolveOperationFailed(
-            "_require_media_pool",
-            "Media Pool is not available. Is a project open?",
-        )
-    return pool
+from ._helpers import find_item, require_media_pool, require_timeline
 
 
 # ---------------------------------------------------------------------------
@@ -134,7 +50,7 @@ def register(mcp: FastMCP) -> None:
             The composition count as an integer.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetFusionCompCount() returns the number of attached compositions
             count: int = item.GetFusionCompCount()
             return count
@@ -166,7 +82,7 @@ def register(mcp: FastMCP) -> None:
             A list of composition name strings.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetFusionCompNameList() returns a list of name strings or None
             names: list[str] = item.GetFusionCompNameList() or []
             return names
@@ -201,7 +117,7 @@ def register(mcp: FastMCP) -> None:
             or None if not found.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetFusionCompByName() returns a Fusion comp object or None
             comp = item.GetFusionCompByName(comp_name)
             if comp is None:
@@ -297,7 +213,7 @@ def register(mcp: FastMCP) -> None:
             True if the composition was imported successfully.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # ImportFusionComp(filePath) loads a .comp file onto the item
             result: bool = item.ImportFusionComp(comp_path)
             if not result:
@@ -339,7 +255,7 @@ def register(mcp: FastMCP) -> None:
             True if the composition was exported successfully.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # ExportFusionComp(compName, filePath) writes the comp to disk
             result: bool = item.ExportFusionComp(comp_name, export_path)
             if not result:
@@ -379,7 +295,7 @@ def register(mcp: FastMCP) -> None:
             True if the composition was deleted.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # DeleteFusionCompByName(compName) removes the named composition
             result: bool = item.DeleteFusionCompByName(comp_name)
             if not result:
@@ -421,7 +337,7 @@ def register(mcp: FastMCP) -> None:
             True if the composition was renamed.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # RenameFusionCompByName(oldName, newName) renames in-place
             result: bool = item.RenameFusionCompByName(old_name, new_name)
             if not result:
@@ -461,7 +377,7 @@ def register(mcp: FastMCP) -> None:
             True if the generator was inserted successfully.
         """
         try:
-            pool = _require_media_pool()
+            pool = require_media_pool()
             # AppendToTimeline() accepts a list of dicts describing media to add.
             # For generators, use mediaType "generator" and generatorType for the name.
             # AppendToTimeline() returns a list (empty = no items added,
@@ -503,7 +419,7 @@ def register(mcp: FastMCP) -> None:
             True if the title was inserted successfully.
         """
         try:
-            pool = _require_media_pool()
+            pool = require_media_pool()
             # Same pattern as generators, but with mediaType "title"
             # AppendToTimeline() returns a list (empty = no items added,
             # non-empty = success) or None on failure.  Use `is None` to
@@ -554,7 +470,7 @@ def register(mcp: FastMCP) -> None:
             or the API does not support tool listing.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             comp = item.GetFusionCompByName(comp_name)
             if comp is None:
                 raise ResolveOperationFailed(
@@ -574,13 +490,13 @@ def register(mcp: FastMCP) -> None:
                 for tool_obj in tools.values():
                     try:
                         tool_names.append(tool_obj.GetAttrs("TOOLS_Name") or str(tool_obj))
-                    except Exception:
+                    except AttributeError:
                         tool_names.append(str(tool_obj))
             elif isinstance(tools, (list, tuple)):
                 for tool_obj in tools:
                     try:
                         tool_names.append(tool_obj.GetAttrs("TOOLS_Name") or str(tool_obj))
-                    except Exception:
+                    except AttributeError:
                         tool_names.append(str(tool_obj))
             else:
                 # Unexpected type; return a best-effort representation

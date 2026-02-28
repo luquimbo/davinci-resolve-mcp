@@ -278,9 +278,10 @@ def register(mcp: FastMCP) -> None:
 
         Args:
             clip_name: Name of the clip.
-            color:     Color name (e.g. "Orange", "Blue", "Green", "Pink",
-                       "Purple", "Fuchsia", "Rose", "Lavender", "Sky",
-                       "Mint", "Lemon", "Sand", "Cocoa", "Cream").
+            color:     Color name (e.g. "Orange", "Apricot", "Yellow",
+                       "Lime", "Olive", "Green", "Teal", "Navy", "Blue",
+                       "Purple", "Violet", "Pink", "Tan", "Beige",
+                       "Brown", "Chocolate").
 
         Returns:
             True if the color was applied.

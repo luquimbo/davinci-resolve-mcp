@@ -91,6 +91,10 @@ class ResolveAPI:
         self._resolve: Any = None
         self._script_module: ModuleType | None = None
         self._last_health_check: float = 0.0
+        # Protects _resolve and _last_health_check from concurrent access.
+        # Uses RLock so callers that hold the lock can safely re-enter
+        # (e.g. a property that calls _ensure_connected).
+        self._conn_lock = threading.RLock()
 
     # ------------------------------------------------------------------
     # Singleton access (thread-safe)
@@ -129,25 +133,30 @@ class ResolveAPI:
 
         Caches successful health checks for ``_HEALTH_CHECK_TTL`` seconds
         to avoid unnecessary IPC calls on rapid successive tool invocations.
+
+        Thread-safe: the entire check-and-reconnect sequence is serialised
+        through ``_conn_lock`` so concurrent callers cannot race on
+        ``_resolve`` / ``_last_health_check``.
         """
-        now = time.monotonic()
+        with self._conn_lock:
+            now = time.monotonic()
 
-        if self._resolve is not None:
-            # If last check was recent enough, skip the IPC round-trip
-            if (now - self._last_health_check) < _HEALTH_CHECK_TTL:
-                return self._resolve
-            try:
-                # Quick health check — cheapest API call
-                self._resolve.GetVersion()
-                self._last_health_check = now
-                return self._resolve
-            except Exception:
-                # Stale reference — reconnect
-                self._resolve = None
+            if self._resolve is not None:
+                # If last check was recent enough, skip the IPC round-trip
+                if (now - self._last_health_check) < _HEALTH_CHECK_TTL:
+                    return self._resolve
+                try:
+                    # Quick health check — cheapest API call
+                    self._resolve.GetVersion()
+                    self._last_health_check = now
+                    return self._resolve
+                except Exception:
+                    # Stale reference — reconnect
+                    self._resolve = None
 
-        self._resolve = self._connect()
-        self._last_health_check = time.monotonic()
-        return self._resolve
+            self._resolve = self._connect()
+            self._last_health_check = time.monotonic()
+            return self._resolve
 
     # ------------------------------------------------------------------
     # Convenience properties — each call validates the connection first

@@ -12,76 +12,7 @@ from typing import Any
 from fastmcp import FastMCP
 
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
-from ..resolve_api import ResolveAPI
-
-# Valid track types accepted by the Resolve scripting API
-_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
-
-
-# ------------------------------------------------------------------
-# Helper — resolve a timeline item from name + track coordinates
-# ------------------------------------------------------------------
-
-def _find_item(
-    name: str,
-    track_type: str = "video",
-    track_index: int = 1,
-) -> Any:
-    """Locate a timeline item by name on the specified track.
-
-    Iterates through GetItemListInTrack() for the given track type and index,
-    returning the first item whose GetName() matches *name*.
-
-    Args:
-        name:        Display name of the timeline item.
-        track_type:  "video", "audio", or "subtitle" (Resolve track type string).
-        track_index: 1-based track number.
-
-    Raises:
-        ResolveOperationFailed: If no timeline is open, the track is empty,
-            or no item matches the given name.
-    """
-    # Validate track_type before hitting the API to give a clear error
-    if track_type not in _VALID_TRACK_TYPES:
-        raise ResolveOperationFailed(
-            "_find_item",
-            f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
-        )
-
-    # Validate track_index is a positive integer (1-based indexing)
-    if track_index < 1:
-        raise ResolveOperationFailed("_find_item", "track_index must be >= 1 (1-based indexing).")
-
-    api = ResolveAPI.get_instance()
-    timeline = api.timeline
-    if timeline is None:
-        raise ResolveOperationFailed(
-            "_find_item",
-            "No timeline is currently open.",
-        )
-
-    # GetItemListInTrack() returns a list of TimelineItem objects
-    items = timeline.GetItemListInTrack(track_type, track_index)
-    if not items:
-        raise ResolveOperationFailed(
-            "_find_item",
-            f"Track '{track_type}' index {track_index} has no items. "
-            f"Cannot find '{name}'.",
-        )
-
-    # Linear scan — timeline tracks are typically manageable in size
-    for item in items:
-        try:
-            if item.GetName() == name:
-                return item
-        except AttributeError:
-            # Skip stale or invalid item references
-            continue
-
-    raise ResolveOperationFailed(
-        "_find_item",
-        f"Item '{name}' not found on {track_type} track {track_index}.",
-    )
+from ._helpers import find_item
 
 
 # ------------------------------------------------------------------
@@ -109,7 +40,7 @@ def register(mcp: FastMCP) -> None:
             track_index: 1-based track number.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             return item.GetName()
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
@@ -134,7 +65,7 @@ def register(mcp: FastMCP) -> None:
             track_index: 1-based track number.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             return int(item.GetDuration())
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
@@ -162,7 +93,7 @@ def register(mcp: FastMCP) -> None:
             Dict with keys: start, end, duration (all integers in frames).
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             return {
                 "start": item.GetStart(),
                 "end": item.GetEnd(),
@@ -198,7 +129,7 @@ def register(mcp: FastMCP) -> None:
             Dict of property keys and values (e.g. "ZoomX", "Pan", "Opacity").
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetProperty() with no args returns the full property dict
             props = item.GetProperty()
             return props if isinstance(props, dict) else {}
@@ -232,7 +163,7 @@ def register(mcp: FastMCP) -> None:
             True if the property was set successfully.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             result: bool = item.SetProperty(key, value)
             if not result:
                 raise ResolveOperationFailed(
@@ -297,7 +228,7 @@ def register(mcp: FastMCP) -> None:
         ]
 
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
 
             applied = 0
             for key, value in param_map:
@@ -365,7 +296,7 @@ def register(mcp: FastMCP) -> None:
         ]
 
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
 
             applied = 0
             for key, value in param_map:
@@ -420,7 +351,7 @@ def register(mcp: FastMCP) -> None:
             True if the composite settings were applied.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
 
             applied = 0
 
@@ -479,7 +410,7 @@ def register(mcp: FastMCP) -> None:
             Color name string, or empty string if none is set.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             color: str = item.GetClipColor() or ""
             return color
         except (ResolveNotRunning, ResolveOperationFailed):
@@ -510,7 +441,7 @@ def register(mcp: FastMCP) -> None:
             True if the color was applied.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             result: bool = item.SetClipColor(color)
             if not result:
                 raise ResolveOperationFailed(
@@ -550,7 +481,7 @@ def register(mcp: FastMCP) -> None:
             True if the state was changed.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             result: bool = item.SetClipEnabled(enabled)
             if not result:
                 state = "enable" if enabled else "disable"
@@ -601,7 +532,7 @@ def register(mcp: FastMCP) -> None:
             True if the marker was added.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             result: bool = item.AddMarker(
                 frame_id, color, name, note, duration, custom_data,
             )
@@ -638,7 +569,7 @@ def register(mcp: FastMCP) -> None:
             color, name, note, duration, customData.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             markers = item.GetMarkers()
             return markers if isinstance(markers, dict) else {}
         except (ResolveNotRunning, ResolveOperationFailed):
@@ -669,7 +600,7 @@ def register(mcp: FastMCP) -> None:
             True if the marker was deleted.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             result: bool = item.DeleteMarkerAtFrame(frame_id)
             if not result:
                 raise ResolveOperationFailed(
@@ -710,7 +641,7 @@ def register(mcp: FastMCP) -> None:
             True if the flag was added.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             result: bool = item.AddFlag(color)
             if not result:
                 raise ResolveOperationFailed(
@@ -744,7 +675,7 @@ def register(mcp: FastMCP) -> None:
             List of color name strings (e.g. ["Blue", "Red"]).
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             flags = item.GetFlagList()
             return list(flags) if flags else []
         except (ResolveNotRunning, ResolveOperationFailed):
@@ -778,7 +709,7 @@ def register(mcp: FastMCP) -> None:
             is linked (e.g. for generators or titles).
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             mpi = item.GetMediaPoolItem()
             if mpi is None:
                 return None
@@ -814,7 +745,7 @@ def register(mcp: FastMCP) -> None:
             List of dicts, each with a "name" key. Empty list if no linked items.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             linked = item.GetLinkedItems()
             if not linked:
                 return []

@@ -18,79 +18,9 @@ from typing import Any
 from fastmcp import FastMCP
 
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
+from ..models import CDLValues
 from ..resolve_api import ResolveAPI
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _require_timeline() -> Any:
-    """Return the current timeline or raise if none is open.
-
-    Centralises the repeated "get API -> get timeline -> None check"
-    boilerplate so each tool doesn't have to duplicate it.
-    """
-    api = ResolveAPI.get_instance()
-    timeline = api.timeline
-    if timeline is None:
-        raise ResolveOperationFailed(
-            "_require_timeline",
-            "No timeline is currently open.",
-        )
-    return timeline
-
-
-_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
-
-
-def _find_item(
-    name: str,
-    track_type: str = "video",
-    track_index: int = 1,
-) -> Any:
-    """Locate a timeline item by name on the given track.
-
-    Args:
-        name:        Exact clip name to search for.
-        track_type:  Track type — "video", "audio", or "subtitle".
-        track_index: 1-based track number within the track type.
-
-    Returns:
-        The first TimelineItem whose GetName() matches *name*.
-
-    Raises:
-        ResolveOperationFailed: If the track type is invalid, the track
-            index is out of range, or the item cannot be found.
-    """
-    # Validate track_type before hitting the API to give a clear error
-    if track_type not in _VALID_TRACK_TYPES:
-        raise ResolveOperationFailed(
-            "_find_item",
-            f"Invalid track_type '{track_type}'. "
-            f"Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}.",
-        )
-
-    # Validate track_index is a positive integer
-    if track_index < 1:
-        raise ResolveOperationFailed(
-            "_find_item",
-            f"track_index must be >= 1, got {track_index}.",
-        )
-
-    timeline = _require_timeline()
-
-    # GetItemListInTrack() returns a list of TimelineItem objects or None
-    items = timeline.GetItemListInTrack(track_type, track_index)
-    if items:
-        for item in items:
-            if item.GetName() == name:
-                return item
-
-    raise ResolveOperationFailed(
-        "_find_item",
-        f"Item '{name}' not found on {track_type} track {track_index}.",
-    )
+from ._helpers import find_item, require_timeline
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +51,7 @@ def register(mcp: FastMCP) -> None:
             The node count as an integer.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetNumNodes() returns the total number of corrector nodes
             count: int = item.GetNumNodes()
             return count
@@ -161,7 +91,7 @@ def register(mcp: FastMCP) -> None:
             True if the LUT was applied successfully.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # SetLUT(nodeIndex, lutPath) returns True on success
             result: bool = item.SetLUT(node_index, lut_path)
             if not result:
@@ -201,7 +131,7 @@ def register(mcp: FastMCP) -> None:
             The absolute path to the applied LUT, or "" if none is set.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetLUT(nodeIndex) returns the LUT path string or ""
             lut_path: str = item.GetLUT(node_index) or ""
             return lut_path
@@ -237,7 +167,7 @@ def register(mcp: FastMCP) -> None:
             True if the LUT was exported successfully.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # ExportLUT(exportType, filePath) writes the grade as a LUT file
             result: bool = item.ExportLUT(lut_type, export_path)
             if not result:
@@ -285,9 +215,31 @@ def register(mcp: FastMCP) -> None:
             True if the CDL values were applied successfully.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
-            # SetCDL() takes a dict with Slope/Offset/Power/Saturation keys
-            result: bool = item.SetCDL(cdl)
+            item = find_item(item_name, track_type, track_index)
+
+            # Validate CDL structure before sending to Resolve
+            try:
+                validated = CDLValues(
+                    slope=cdl.get("Slope", [1.0, 1.0, 1.0]),
+                    offset=cdl.get("Offset", [0.0, 0.0, 0.0]),
+                    power=cdl.get("Power", [1.0, 1.0, 1.0]),
+                    saturation=cdl.get("Saturation", 1.0),
+                )
+            except Exception as ve:
+                raise ResolveOperationFailed(
+                    "color_set_cdl",
+                    f"Invalid CDL values: {ve}. Expected format: "
+                    '{"Slope": [R,G,B], "Offset": [R,G,B], "Power": [R,G,B], "Saturation": float}.',
+                ) from ve
+
+            # Build the CDL dict using validated values
+            cdl_dict = {
+                "Slope": validated.slope,
+                "Offset": validated.offset,
+                "Power": validated.power,
+                "Saturation": validated.saturation,
+            }
+            result: bool = item.SetCDL(cdl_dict)
             if not result:
                 raise ResolveOperationFailed(
                     "color_set_cdl",
@@ -324,7 +276,7 @@ def register(mcp: FastMCP) -> None:
             Power ([R,G,B]), Saturation (float).
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetCDL() returns a dict with Slope, Offset, Power, Saturation
             cdl: dict = item.GetCDL()
             return cdl
@@ -366,7 +318,7 @@ def register(mcp: FastMCP) -> None:
             current version.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # SetNodeEnabled() may not be available in all Resolve versions;
             # we attempt the call and gracefully return False if unsupported
             result: bool = item.SetNodeEnabled(node_index, enabled)
@@ -406,12 +358,20 @@ def register(mcp: FastMCP) -> None:
             True if the grade was applied to all items successfully.
         """
         try:
-            timeline = _require_timeline()
+            # Validate grade_mode before hitting the API
+            if grade_mode not in (0, 1, 2):
+                raise ResolveOperationFailed(
+                    "color_apply_drx",
+                    f"Invalid grade_mode {grade_mode}. Must be 0 (No keyframes), "
+                    "1 (Source), or 2 (Timeline).",
+                )
+
+            timeline = require_timeline()
 
             # Collect the TimelineItem objects for every requested name
             items: list[Any] = []
             for name in item_names:
-                items.append(_find_item(name, track_type, track_index))
+                items.append(find_item(name, track_type, track_index))
 
             # ApplyGradeFromDRX(drxPath, gradeMode, item1, item2, ...)
             result: bool = timeline.ApplyGradeFromDRX(
@@ -459,7 +419,7 @@ def register(mcp: FastMCP) -> None:
             True if the reset succeeded.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # Apply identity CDL values to neutralise the current grade
             identity_cdl = {
                 "Slope": [1.0, 1.0, 1.0],
@@ -508,7 +468,7 @@ def register(mcp: FastMCP) -> None:
             True if the version was created.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # AddVersion(versionName, versionType) — 0 = local, 1 = remote
             result: bool = item.AddVersion(version_name, 0)
             if not result:
@@ -548,7 +508,7 @@ def register(mcp: FastMCP) -> None:
             The version count as an integer.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetVersionNameList(versionType) returns a list of name strings
             versions: list[str] = item.GetVersionNameList(version_type) or []
             return len(versions)
@@ -582,7 +542,7 @@ def register(mcp: FastMCP) -> None:
             A list of version name strings.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             versions: list[str] = item.GetVersionNameList(version_type) or []
             return versions
         except (ResolveNotRunning, ResolveOperationFailed):
@@ -617,7 +577,7 @@ def register(mcp: FastMCP) -> None:
             True if the version was activated.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # SetCurrentVersion(versionName, versionType) switches the active version
             result: bool = item.SetCurrentVersion(version_name, version_type)
             if not result:
@@ -657,7 +617,7 @@ def register(mcp: FastMCP) -> None:
             The active version name, or "" if unavailable.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # GetCurrentVersion(versionType) returns a dict with "versionName" key
             version_info = item.GetCurrentVersion(version_type)
             if isinstance(version_info, dict):
@@ -696,7 +656,7 @@ def register(mcp: FastMCP) -> None:
             True if the version was deleted.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # DeleteVersion(versionName, versionType) removes a grade version
             result: bool = item.DeleteVersion(version_name, version_type)
             if not result:
@@ -740,7 +700,7 @@ def register(mcp: FastMCP) -> None:
             True if the version was renamed.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # RenameVersion(oldName, newName, versionType) renames in-place
             result: bool = item.RenameVersion(old_name, new_name, version_type)
             if not result:
@@ -785,7 +745,7 @@ def register(mcp: FastMCP) -> None:
             True if the version was loaded.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # LoadVersion(versionName, versionType) overwrites current grade
             result: bool = item.LoadVersion(version_name, version_type)
             if not result:
@@ -944,7 +904,7 @@ def register(mcp: FastMCP) -> None:
             is not supported in the current Resolve version.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # SetGroupMembership(groupId, True) adds the item to the group
             result: bool = item.SetGroupMembership(group_id, True)
             return bool(result)
@@ -978,7 +938,7 @@ def register(mcp: FastMCP) -> None:
             is not supported in the current Resolve version.
         """
         try:
-            item = _find_item(item_name, track_type, track_index)
+            item = find_item(item_name, track_type, track_index)
             # SetGroupMembership(groupId, False) removes the item from the group
             result: bool = item.SetGroupMembership(group_id, False)
             return bool(result)

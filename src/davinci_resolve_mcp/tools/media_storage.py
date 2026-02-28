@@ -37,13 +37,13 @@ def register(mcp: FastMCP) -> None:
             volumes = storage.GetMountedVolumeList()
             return volumes if volumes else []
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             # Stale scripting-bridge reference — Resolve was likely restarted
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
-        except ResolveNotRunning:
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "storage_get_volumes", str(exc)
@@ -72,12 +72,12 @@ def register(mcp: FastMCP) -> None:
             subfolders = storage.GetSubFolderList(volume_path)
             return subfolders if subfolders else []
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
-        except ResolveNotRunning:
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "storage_get_subfolders", str(exc)
@@ -107,12 +107,12 @@ def register(mcp: FastMCP) -> None:
             files = storage.GetFileList(folder_path)
             return files if files else []
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
-        except ResolveNotRunning:
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "storage_get_files", str(exc)
@@ -148,12 +148,12 @@ def register(mcp: FastMCP) -> None:
             # Extract the display name of each successfully imported clip
             return [item.GetName() for item in items]
 
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
         except AttributeError as exc:
             raise ResolveNotRunning(
                 f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
-        except ResolveNotRunning:
-            raise
         except Exception as exc:
             raise ResolveOperationFailed(
                 "storage_import_to_pool", str(exc)

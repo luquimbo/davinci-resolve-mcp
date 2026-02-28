@@ -34,8 +34,13 @@ from davinci_resolve_mcp.resolve_api import ResolveAPI
 class MockFusionTool:
     """Simulates a single Fusion node/tool with basic attributes."""
 
-    def GetAttrs(self) -> dict:
-        return {"TOOLS_Name": "Background1"}
+    def GetAttrs(self, key: str | None = None) -> str | dict:
+        # When called with a specific key, return that attribute value;
+        # when called with no args, return the full attribute dict.
+        attrs = {"TOOLS_Name": "Background1"}
+        if key is not None:
+            return attrs.get(key, "")
+        return attrs
 
 
 class MockFusionComp:
