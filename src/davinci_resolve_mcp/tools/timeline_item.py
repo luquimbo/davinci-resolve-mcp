@@ -14,6 +14,9 @@ from fastmcp import FastMCP
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
 from ..resolve_api import ResolveAPI
 
+# Valid track types accepted by the Resolve scripting API
+_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
+
 
 # ------------------------------------------------------------------
 # Helper — resolve a timeline item from name + track coordinates
@@ -31,13 +34,24 @@ def _find_item(
 
     Args:
         name:        Display name of the timeline item.
-        track_type:  "video" or "audio" (Resolve track type string).
+        track_type:  "video", "audio", or "subtitle" (Resolve track type string).
         track_index: 1-based track number.
 
     Raises:
         ResolveOperationFailed: If no timeline is open, the track is empty,
             or no item matches the given name.
     """
+    # Validate track_type before hitting the API to give a clear error
+    if track_type not in _VALID_TRACK_TYPES:
+        raise ResolveOperationFailed(
+            "_find_item",
+            f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+        )
+
+    # Validate track_index is a positive integer (1-based indexing)
+    if track_index < 1:
+        raise ResolveOperationFailed("_find_item", "track_index must be >= 1 (1-based indexing).")
+
     api = ResolveAPI.get_instance()
     timeline = api.timeline
     if timeline is None:
@@ -101,7 +115,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item name."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_name", str(exc)) from exc
@@ -126,7 +140,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item duration."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_duration", str(exc)) from exc
@@ -158,7 +172,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item start/end."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_start_end", str(exc)) from exc
@@ -192,7 +206,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item properties."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_properties", str(exc)) from exc
@@ -230,7 +244,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting item property."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_set_property", str(exc)) from exc
@@ -308,7 +322,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting item transform."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_set_transform", str(exc)) from exc
@@ -375,7 +389,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting item crop."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_set_crop", str(exc)) from exc
@@ -439,7 +453,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting item composite."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_set_composite", str(exc)) from exc
@@ -472,7 +486,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item color."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_color", str(exc)) from exc
@@ -508,7 +522,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting item color."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_set_color", str(exc)) from exc
@@ -549,7 +563,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while toggling item enabled state."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_set_enabled", str(exc)) from exc
@@ -601,7 +615,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while adding item marker."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_add_marker", str(exc)) from exc
@@ -631,7 +645,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item markers."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_markers", str(exc)) from exc
@@ -668,7 +682,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting item marker."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_delete_marker", str(exc)) from exc
@@ -708,7 +722,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while adding item flag."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_add_flag", str(exc)) from exc
@@ -737,7 +751,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading item flags."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("item_get_flags", str(exc)) from exc
@@ -776,7 +790,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading media pool item."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -810,7 +824,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading linked items."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(

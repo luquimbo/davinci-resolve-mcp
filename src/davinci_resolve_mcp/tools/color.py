@@ -41,6 +41,9 @@ def _require_timeline() -> Any:
     return timeline
 
 
+_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
+
+
 def _find_item(
     name: str,
     track_type: str = "video",
@@ -50,15 +53,31 @@ def _find_item(
 
     Args:
         name:        Exact clip name to search for.
-        track_type:  Track type — "video" or "audio".
+        track_type:  Track type — "video", "audio", or "subtitle".
         track_index: 1-based track number within the track type.
 
     Returns:
         The first TimelineItem whose GetName() matches *name*.
 
     Raises:
-        ResolveOperationFailed: If the item cannot be found.
+        ResolveOperationFailed: If the track type is invalid, the track
+            index is out of range, or the item cannot be found.
     """
+    # Validate track_type before hitting the API to give a clear error
+    if track_type not in _VALID_TRACK_TYPES:
+        raise ResolveOperationFailed(
+            "_find_item",
+            f"Invalid track_type '{track_type}'. "
+            f"Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}.",
+        )
+
+    # Validate track_index is a positive integer
+    if track_index < 1:
+        raise ResolveOperationFailed(
+            "_find_item",
+            f"track_index must be >= 1, got {track_index}.",
+        )
+
     timeline = _require_timeline()
 
     # GetItemListInTrack() returns a list of TimelineItem objects or None
@@ -110,7 +129,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading node count."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -156,7 +175,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting LUT."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -190,7 +209,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading LUT."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -232,7 +251,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while exporting LUT."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -280,7 +299,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting CDL."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -313,7 +332,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading CDL."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -409,7 +428,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while applying DRX grade."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -420,7 +439,7 @@ def register(mcp: FastMCP) -> None:
     # Grade reset (identity CDL)
     # ==================================================================
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def color_reset_grade(
         item_name: str,
         track_type: str = "video",
@@ -459,7 +478,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while resetting grade."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -503,7 +522,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while adding grade version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -537,7 +556,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while counting grade versions."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -570,7 +589,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing grade versions."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -612,7 +631,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while switching grade version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -649,14 +668,14 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading current version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "color_get_current_version", str(exc)
             ) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def color_delete_version(
         item_name: str,
         version_name: str,
@@ -691,7 +710,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting grade version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -735,7 +754,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while renaming grade version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -780,7 +799,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while loading grade version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -867,7 +886,7 @@ def register(mcp: FastMCP) -> None:
                 "color_create_group", str(exc)
             ) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def color_delete_group(group_id: str) -> bool:
         """Delete a color group from the current project by its ID.
 

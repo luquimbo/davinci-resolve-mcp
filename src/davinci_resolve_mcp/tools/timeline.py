@@ -14,6 +14,9 @@ from fastmcp import FastMCP
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
 from ..resolve_api import ResolveAPI
 
+# Valid track types accepted by the Resolve scripting API
+_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
+
 
 def register(mcp: FastMCP) -> None:
     """Register all timeline tools on the given MCP server instance."""
@@ -45,7 +48,7 @@ def register(mcp: FastMCP) -> None:
             }
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading current timeline."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -93,7 +96,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting current timeline."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -115,7 +118,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while counting timelines."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -159,7 +162,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading timeline by index."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -188,7 +191,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading timeline name."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -205,6 +208,10 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the rename succeeded.
         """
+        # Reject empty or whitespace-only names before calling the API
+        if not name or not name.strip():
+            raise ResolveOperationFailed("timeline_set_name", "Name cannot be empty.")
+
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -224,7 +231,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while renaming timeline."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -250,7 +257,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading start frame."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -272,7 +279,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading end frame."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -291,6 +298,11 @@ def register(mcp: FastMCP) -> None:
             track_type: One of "video", "audio", or "subtitle".
                         Defaults to "video".
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_get_track_count",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -303,7 +315,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while counting tracks."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -322,6 +334,11 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if all requested tracks were added successfully.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_add_track",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -343,14 +360,14 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while adding track."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "timeline_add_track", str(exc)
             ) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def timeline_delete_track(track_type: str, track_index: int) -> bool:
         """Delete a track from the current timeline.
 
@@ -361,6 +378,13 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the track was deleted.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_delete_track",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_delete_track", "track_index must be >= 1 (1-based indexing).")
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -381,7 +405,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting track."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -396,6 +420,13 @@ def register(mcp: FastMCP) -> None:
             track_type: One of "video", "audio", or "subtitle".
             track_index: 1-based index of the track.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_get_track_name",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_get_track_name", "track_index must be >= 1 (1-based indexing).")
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -409,7 +440,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading track name."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -428,6 +459,15 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the rename succeeded.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_set_track_name",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_set_track_name", "track_index must be >= 1 (1-based indexing).")
+        if not name or not name.strip():
+            raise ResolveOperationFailed("timeline_set_track_name", "Name cannot be empty.")
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -447,7 +487,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while renaming track."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -468,6 +508,13 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the operation succeeded.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_set_track_enabled",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_set_track_enabled", "track_index must be >= 1 (1-based indexing).")
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -488,7 +535,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while toggling track enabled state."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -509,6 +556,13 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the operation succeeded.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_set_track_locked",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_set_track_locked", "track_index must be >= 1 (1-based indexing).")
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -529,7 +583,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while toggling track lock state."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -556,6 +610,16 @@ def register(mcp: FastMCP) -> None:
             A dict with keys: items (list of {name, start, end, duration}),
             total, offset, limit, has_more.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_get_items_in_track",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed("timeline_get_items_in_track", "track_index must be >= 1 (1-based indexing).")
+        # Clamp offset and limit to sensible minimums
+        offset = max(0, offset)
+        limit = max(1, limit)
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -600,7 +664,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing track items."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -681,14 +745,14 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while appending clips."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "timeline_append_clips", str(exc)
             ) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def timeline_delete_clips(
         item_names: list[str],
         track_type: str = "video",
@@ -705,6 +769,11 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the items were deleted.
         """
+        if track_type not in _VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_delete_clips",
+                f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}",
+            )
         try:
             api = ResolveAPI.get_instance()
             tl = api.timeline
@@ -746,7 +815,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting clips."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -783,7 +852,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while duplicating timeline."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -842,7 +911,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while adding marker."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -873,7 +942,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading markers."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -910,7 +979,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting marker."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(

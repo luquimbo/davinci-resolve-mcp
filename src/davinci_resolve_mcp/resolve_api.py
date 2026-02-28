@@ -1,8 +1,8 @@
 """Lazy singleton that connects to the running DaVinci Resolve instance.
 
 Platform auto-detection adds the correct scripting modules path before importing
-the Resolve scripting library.  A health-check (`GetVersion()`) runs on every
-access to detect stale references and reconnect automatically.
+the Resolve scripting library.  A health-check runs periodically to detect stale
+references and reconnect automatically.
 """
 
 from __future__ import annotations
@@ -11,9 +11,15 @@ import importlib
 import os
 import platform
 import sys
+import threading
+import time
+from types import ModuleType
 from typing import Any
 
 from .exceptions import ResolveNotRunning
+
+# How many seconds to cache a successful health check before re-checking
+_HEALTH_CHECK_TTL = 5.0
 
 
 def _get_modules_path() -> str:
@@ -38,7 +44,7 @@ def _get_modules_path() -> str:
         return "/opt/resolve/Developer/Scripting/Modules/"
 
 
-def _load_resolve_script() -> Any:
+def _load_resolve_script() -> ModuleType:
     """Import DaVinciResolveScript from the platform-specific path."""
     modules_path = _get_modules_path()
 
@@ -65,7 +71,7 @@ def _load_resolve_script() -> Any:
 
 
 class ResolveAPI:
-    """Lazy singleton providing access to the Resolve scripting API.
+    """Lazy, thread-safe singleton providing access to the Resolve scripting API.
 
     Usage::
 
@@ -79,25 +85,31 @@ class ResolveAPI:
     """
 
     _instance: ResolveAPI | None = None
+    _lock: threading.Lock = threading.Lock()
 
     def __init__(self) -> None:
         self._resolve: Any = None
-        self._script_module: Any = None
+        self._script_module: ModuleType | None = None
+        self._last_health_check: float = 0.0
 
     # ------------------------------------------------------------------
-    # Singleton access
+    # Singleton access (thread-safe)
     # ------------------------------------------------------------------
     @classmethod
     def get_instance(cls) -> ResolveAPI:
         """Return the shared instance, creating it on first call."""
         if cls._instance is None:
-            cls._instance = cls()
+            with cls._lock:
+                # Double-checked locking — re-check after acquiring lock
+                if cls._instance is None:
+                    cls._instance = cls()
         return cls._instance
 
     @classmethod
     def reset(cls) -> None:
         """Drop the singleton (useful for tests)."""
-        cls._instance = None
+        with cls._lock:
+            cls._instance = None
 
     # ------------------------------------------------------------------
     # Connection
@@ -107,23 +119,34 @@ class ResolveAPI:
         if self._script_module is None:
             self._script_module = _load_resolve_script()
 
-        resolve = self._script_module.scriptapp("Resolve")
+        resolve = self._script_module.scriptapp("Resolve")  # type: ignore[union-attr]
         if resolve is None:
             raise ResolveNotRunning()
         return resolve
 
     def _ensure_connected(self) -> Any:
-        """Return a live Resolve reference, reconnecting if stale."""
+        """Return a live Resolve reference, reconnecting if stale.
+
+        Caches successful health checks for ``_HEALTH_CHECK_TTL`` seconds
+        to avoid unnecessary IPC calls on rapid successive tool invocations.
+        """
+        now = time.monotonic()
+
         if self._resolve is not None:
+            # If last check was recent enough, skip the IPC round-trip
+            if (now - self._last_health_check) < _HEALTH_CHECK_TTL:
+                return self._resolve
             try:
                 # Quick health check — cheapest API call
                 self._resolve.GetVersion()
+                self._last_health_check = now
                 return self._resolve
             except Exception:
                 # Stale reference — reconnect
                 self._resolve = None
 
         self._resolve = self._connect()
+        self._last_health_check = time.monotonic()
         return self._resolve
 
     # ------------------------------------------------------------------

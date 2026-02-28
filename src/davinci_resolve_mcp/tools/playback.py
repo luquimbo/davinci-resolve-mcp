@@ -39,7 +39,7 @@ def register(mcp: FastMCP) -> None:
         except AttributeError as exc:
             # Stale scripting bridge reference — Resolve may have restarted
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading current page."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("playback_get_page", str(exc)) from exc
@@ -77,7 +77,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while switching page."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("playback_open_page", str(exc)) from exc
@@ -107,7 +107,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading timecode."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("playback_get_timecode", str(exc)) from exc
@@ -144,7 +144,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while setting timecode."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("playback_set_timecode", str(exc)) from exc
@@ -179,7 +179,7 @@ def register(mcp: FastMCP) -> None:
             }
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading current item."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -206,7 +206,7 @@ def register(mcp: FastMCP) -> None:
             return str(raw)
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading version."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("resolve_get_version", str(exc)) from exc
@@ -223,7 +223,7 @@ def register(mcp: FastMCP) -> None:
             return name
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading product name."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("resolve_get_product", str(exc)) from exc

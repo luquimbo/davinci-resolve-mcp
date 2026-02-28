@@ -41,6 +41,9 @@ def _require_timeline() -> Any:
     return timeline
 
 
+_VALID_TRACK_TYPES = {"video", "audio", "subtitle"}
+
+
 def _find_item(
     name: str,
     track_type: str = "video",
@@ -50,15 +53,28 @@ def _find_item(
 
     Args:
         name:        Exact clip name to search for.
-        track_type:  Track type — "video" or "audio".
+        track_type:  Track type — "video", "audio", or "subtitle".
         track_index: 1-based track number within the track type.
 
     Returns:
         The first TimelineItem whose GetName() matches *name*.
 
     Raises:
-        ResolveOperationFailed: If the item cannot be found.
+        ResolveOperationFailed: If the track type is invalid, the track
+            index is out of range, or the item cannot be found.
     """
+    # Validate track_type and track_index before hitting the Resolve API
+    if track_type not in _VALID_TRACK_TYPES:
+        raise ResolveOperationFailed(
+            "_find_item",
+            f"Invalid track_type '{track_type}'. Must be one of: {', '.join(sorted(_VALID_TRACK_TYPES))}.",
+        )
+    if track_index < 1:
+        raise ResolveOperationFailed(
+            "_find_item",
+            f"track_index must be >= 1, got {track_index}.",
+        )
+
     timeline = _require_timeline()
 
     # GetItemListInTrack() returns a list of TimelineItem objects or None
@@ -126,7 +142,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading Fusion comp count."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -158,7 +174,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing Fusion comp names."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -205,7 +221,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading Fusion comp info."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -255,7 +271,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while adding Fusion comp."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -295,7 +311,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while importing Fusion comp."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -337,14 +353,14 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while exporting Fusion comp."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "fusion_export_comp", str(exc)
             ) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def fusion_delete_comp(
         item_name: str,
         comp_name: str,
@@ -377,7 +393,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting Fusion comp."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -419,7 +435,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while renaming Fusion comp."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -448,10 +464,13 @@ def register(mcp: FastMCP) -> None:
             pool = _require_media_pool()
             # AppendToTimeline() accepts a list of dicts describing media to add.
             # For generators, use mediaType "generator" and generatorType for the name.
+            # AppendToTimeline() returns a list (empty = no items added,
+            # non-empty = success) or None on failure.  Use `is None` to
+            # distinguish actual failure from an empty list.
             result = pool.AppendToTimeline(
                 [{"mediaType": "generator", "generatorType": generator_name}]
             )
-            if not result:
+            if result is None:
                 raise ResolveOperationFailed(
                     "fusion_insert_generator",
                     f"Failed to insert generator '{generator_name}'. "
@@ -462,7 +481,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while inserting Fusion generator."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -486,10 +505,13 @@ def register(mcp: FastMCP) -> None:
         try:
             pool = _require_media_pool()
             # Same pattern as generators, but with mediaType "title"
+            # AppendToTimeline() returns a list (empty = no items added,
+            # non-empty = success) or None on failure.  Use `is None` to
+            # distinguish actual failure from an empty list.
             result = pool.AppendToTimeline(
                 [{"mediaType": "title", "generatorType": title_name}]
             )
-            if not result:
+            if result is None:
                 raise ResolveOperationFailed(
                     "fusion_insert_title",
                     f"Failed to insert title '{title_name}'. "
@@ -500,7 +522,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while inserting Fusion title."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -569,7 +591,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing Fusion tools."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(

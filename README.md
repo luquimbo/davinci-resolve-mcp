@@ -4,7 +4,7 @@ The most complete MCP server for DaVinci Resolve's Scripting API. Control projec
 
 ## Features
 
-- **175+ tools** across 12 domains (playback, project, media storage, media pool, clips, timelines, timeline items, render, color, Fusion, gallery, Fairlight)
+- **158 tools** across 12 domains (playback, project, media storage, media pool, clips, timelines, timeline items, render, color, Fusion, gallery, Fairlight)
 - **3 resources** for quick context (`resolve://system`, `resolve://project`, `resolve://timeline`)
 - **Complete API coverage** of the DaVinci Resolve Scripting API (Phases 1-3)
 - **Pydantic v2 models** for type-safe inputs and outputs
@@ -101,7 +101,7 @@ This prints Resolve version, current project, and timeline info to confirm the s
 src/davinci_resolve_mcp/
   server.py          FastMCP instance, registers all modules, CLI entry point
   resolve_api.py     Lazy singleton with platform auto-detection and health checks
-  models.py          Pydantic models (ClipInfo, TimelineInfo, RenderSettings, CDLValues, ...)
+  models.py          Pydantic models (CDLValues for ASC color correction)
   constants.py       Enums for pages, track types, clip colors, marker colors, export types
   exceptions.py      ResolveNotRunning, ResolveOperationFailed
   tools/
@@ -142,15 +142,9 @@ uv run pytest
 uv run pytest -m integration
 ```
 
-## Phases
+## Scope
 
-| Phase | Version | Tools | Scope |
-|-------|---------|------:|-------|
-| Phase 1 | v0.1.0 | 108 | Core: playback, project, media storage, media pool, clips, timeline, timeline items, render |
-| Phase 2 | v0.2.0 | +33 | Color grading (nodes, LUTs, CDL, versions, groups) + Fusion (compositions, generators, titles) |
-| Phase 3 | v1.0.0 | +17 | Gallery (stills, albums, PowerGrades) + Fairlight (audio, presets) + advanced features |
-
-All three phases are included in v0.1.0.
+All 158 tools ship in v0.1.0 — covering core editing, color grading, Fusion compositions, gallery stills, and Fairlight audio.
 
 ## Auto-Generated Tool Reference
 

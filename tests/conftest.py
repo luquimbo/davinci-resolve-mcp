@@ -64,6 +64,18 @@ class MockAlbum:
     def GetStills(self) -> list:
         return [MockStill()]
 
+    def ImportStills(self, paths: list[str]) -> bool:
+        return True
+
+    def ExportStills(self, stills: list, path: str, *args: Any) -> bool:
+        return True
+
+    def DeleteStills(self, stills: list) -> bool:
+        return True
+
+    def GrabStill(self) -> bool:
+        return True
+
 
 class MockGallery:
     """Simulates the Gallery object returned by Project.GetGallery()."""
@@ -78,6 +90,18 @@ class MockGallery:
         return self._album
 
     def SetCurrentStillAlbum(self, album: Any) -> bool:
+        return True
+
+    def CreateGalleryStillAlbum(self, name: str) -> MockAlbum:
+        return MockAlbum(name)
+
+    def DeleteGalleryStillAlbum(self, album: Any) -> bool:
+        return True
+
+    def GetGalleryPowerGradeAlbums(self) -> list:
+        return [MockAlbum("PowerGrade 1")]
+
+    def SetCurrentPowerGradeAlbum(self, album: Any) -> bool:
         return True
 
 
@@ -333,6 +357,15 @@ class MockTimelineItem:
     def RenameFusionCompByName(self, old_name: str, new_name: str) -> bool:
         return True
 
+    def SetNodeEnabled(self, node_index: int, enabled: bool) -> bool:
+        return True
+
+    def SetGroupMembership(self, group_id: str, member: bool) -> bool:
+        return True
+
+    def ApplyGradeFromGalleryStill(self, still: Any) -> bool:
+        return True
+
 
 class MockTimeline:
     """Simulates a DaVinci Resolve timeline object."""
@@ -413,6 +446,9 @@ class MockTimeline:
         return True
 
     def ApplyGradeFromDRX(self, path: str, mode: int, *items: Any) -> bool:
+        return True
+
+    def GrabStill(self) -> bool:
         return True
 
 
@@ -567,6 +603,21 @@ class MockProject:
 
     def GetRenderJobStatus(self, job_id: str) -> dict:
         return {"JobStatus": "Complete", "CompletionPercentage": 100}
+
+    def GetColorGroupsList(self) -> list[dict]:
+        return [{"name": "Group 1", "id": "group-001"}]
+
+    def AddColorGroup(self, name: str) -> bool:
+        return True
+
+    def DeleteColorGroup(self, group_id: str) -> bool:
+        return True
+
+    def GetFairlightPresetList(self) -> list[str]:
+        return ["Dialogue", "Music", "SFX"]
+
+    def ApplyFairlightPreset(self, name: str, *args: Any) -> bool:
+        return True
 
 
 class MockProjectManager:

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-02-27
 
 ### Added
-- Initial release with 175+ tools across 12 domains
+- Initial release with 158 tools across 12 domains
 - **Phase 1 (Core)**: Playback, project, media storage, media pool, clips, timeline, timeline items, render
 - **Phase 2 (Color + Fusion)**: Color grading (nodes, LUTs, CDL, grade versions, color groups), Fusion (compositions, generators, titles, tool listing)
 - **Phase 3 (Gallery + Fairlight)**: Gallery (still albums, PowerGrades, grab/import/export), Fairlight (audio insertion, presets)

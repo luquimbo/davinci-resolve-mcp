@@ -36,7 +36,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing projects."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_list", str(exc)) from exc
@@ -52,6 +52,9 @@ def register(mcp: FastMCP) -> None:
         Returns:
             The name of the created project.
         """
+        # Reject empty or whitespace-only names before hitting the API
+        if not name or not name.strip():
+            raise ResolveOperationFailed("project_create", "Project name cannot be empty.")
         try:
             api = ResolveAPI.get_instance()
             pm = api.project_manager
@@ -68,7 +71,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while creating project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_create", str(exc)) from exc
@@ -84,6 +87,9 @@ def register(mcp: FastMCP) -> None:
         Returns:
             True if the project was opened successfully.
         """
+        # Reject empty or whitespace-only names before hitting the API
+        if not name or not name.strip():
+            raise ResolveOperationFailed("project_open", "Project name cannot be empty.")
         try:
             api = ResolveAPI.get_instance()
             pm = api.project_manager
@@ -100,7 +106,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while opening project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_open", str(exc)) from exc
@@ -130,7 +136,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while saving project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_save", str(exc)) from exc
@@ -162,12 +168,12 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while closing project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_close", str(exc)) from exc
 
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def project_delete(name: str) -> bool:
         """Delete a project by name.  The project must NOT be currently open.
 
@@ -195,7 +201,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_delete", str(exc)) from exc
@@ -226,7 +232,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading project info."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_get_current", str(exc)) from exc
@@ -261,7 +267,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while reading project setting."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_get_setting", str(exc)) from exc
@@ -297,7 +303,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while writing project setting."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_set_setting", str(exc)) from exc
@@ -332,7 +338,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while importing project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_import", str(exc)) from exc
@@ -370,7 +376,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while exporting project."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_export", str(exc)) from exc
@@ -396,7 +402,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing folders."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_folder_list", str(exc)) from exc
@@ -427,7 +433,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while opening folder."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_folder_open", str(exc)) from exc

@@ -103,10 +103,10 @@ def register(mcp: FastMCP) -> None:
                 )
             return root.GetName()
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -124,10 +124,10 @@ def register(mcp: FastMCP) -> None:
             folder = _require_current_folder()
             return folder.GetName()
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -170,10 +170,10 @@ def register(mcp: FastMCP) -> None:
                 f"Folder '{folder_name}' not found in current or root folder.",
             )
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -193,6 +193,10 @@ def register(mcp: FastMCP) -> None:
 
         Returns True if the folder was created.
         """
+        # Validate the folder name before calling Resolve
+        if not name or not name.strip():
+            raise ResolveOperationFailed("media_pool_create_folder", "Folder name cannot be empty.")
+
         try:
             pool = _require_pool()
             current = _require_current_folder()
@@ -205,10 +209,10 @@ def register(mcp: FastMCP) -> None:
                 )
             return True
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -219,7 +223,7 @@ def register(mcp: FastMCP) -> None:
     # ------------------------------------------------------------------
     # 5. Delete folders by name
     # ------------------------------------------------------------------
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def media_pool_delete_folders(folder_names: list[str]) -> bool:
         """Delete Media Pool subfolders by name.
 
@@ -248,10 +252,10 @@ def register(mcp: FastMCP) -> None:
             result = pool.DeleteFolders(folder_objs)
             return bool(result)
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -273,6 +277,10 @@ def register(mcp: FastMCP) -> None:
         Returns a dict with keys: items, total, offset, limit, has_more.
         Each item contains: name, clip_color, duration, fps, resolution.
         """
+        # Clamp offset and limit to sensible minimums
+        offset = max(0, offset)
+        limit = max(1, limit)
+
         try:
             folder = _require_current_folder()
 
@@ -307,10 +315,10 @@ def register(mcp: FastMCP) -> None:
                 "has_more": (offset + limit) < total,
             }
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -329,10 +337,10 @@ def register(mcp: FastMCP) -> None:
             subfolders = folder.GetSubFolderList() or []
             return [f.GetName() for f in subfolders]
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -364,10 +372,10 @@ def register(mcp: FastMCP) -> None:
 
             return [item.GetName() for item in items]
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -399,10 +407,10 @@ def register(mcp: FastMCP) -> None:
 
             return timeline.GetName()
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -446,10 +454,10 @@ def register(mcp: FastMCP) -> None:
 
             return timeline.GetName()
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -460,7 +468,7 @@ def register(mcp: FastMCP) -> None:
     # ------------------------------------------------------------------
     # 11. Delete clips by name
     # ------------------------------------------------------------------
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def media_pool_delete_clips(clip_names: list[str]) -> bool:
         """Delete clips from the current Media Pool folder by name.
 
@@ -484,10 +492,10 @@ def register(mcp: FastMCP) -> None:
             result = pool.DeleteClips(clip_objs)
             return bool(result)
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -540,10 +548,10 @@ def register(mcp: FastMCP) -> None:
             result = pool.MoveClips(clip_objs, target)
             return bool(result)
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -582,10 +590,10 @@ def register(mcp: FastMCP) -> None:
             result = pool.RelinkClips(clip_objs, new_folder_path)
             return bool(result)
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:
@@ -625,10 +633,10 @@ def register(mcp: FastMCP) -> None:
                 )
             return True
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
         except Exception as exc:

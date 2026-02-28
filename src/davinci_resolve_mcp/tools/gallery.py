@@ -41,7 +41,7 @@ def _get_gallery() -> Any:
         gallery = project.GetGallery()
     except AttributeError as exc:
         raise ResolveNotRunning(
-            "Lost connection to Resolve while accessing Gallery."
+            f"Lost connection to Resolve (stale reference: {exc}). Please retry."
         ) from exc
 
     if gallery is None:
@@ -182,12 +182,12 @@ def register(mcp: FastMCP) -> None:
                 return []
             return [_get_album_name(a) for a in albums]
 
-        except AttributeError as exc:
-            raise ResolveNotRunning(
-                "Lost connection to Resolve while listing albums."
-            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_get_albums", str(exc)
@@ -209,12 +209,12 @@ def register(mcp: FastMCP) -> None:
                 return ""
             return _get_album_name(album)
 
-        except AttributeError as exc:
-            raise ResolveNotRunning(
-                "Lost connection to Resolve while reading current album."
-            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_get_current_album", str(exc)
@@ -243,12 +243,12 @@ def register(mcp: FastMCP) -> None:
                 )
             return True
 
-        except AttributeError as exc:
-            raise ResolveNotRunning(
-                "Lost connection to Resolve while switching album."
-            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_set_current_album", str(exc)
@@ -295,7 +295,7 @@ def register(mcp: FastMCP) -> None:
     # ------------------------------------------------------------------
     # 5. Delete a still album
     # ------------------------------------------------------------------
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def gallery_delete_album(album_name: str) -> bool:
         """Delete a still album from the Gallery.
 
@@ -364,12 +364,12 @@ def register(mcp: FastMCP) -> None:
                 })
             return result
 
-        except AttributeError as exc:
-            raise ResolveNotRunning(
-                "Lost connection to Resolve while listing stills."
-            ) from exc
         except (ResolveNotRunning, ResolveOperationFailed):
             raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
                 "gallery_get_stills", str(exc)
@@ -435,7 +435,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while grabbing still."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -492,7 +492,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while importing stills."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -561,7 +561,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while exporting stills."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -571,7 +571,7 @@ def register(mcp: FastMCP) -> None:
     # ------------------------------------------------------------------
     # 10. Delete stills by index
     # ------------------------------------------------------------------
-    @mcp.tool()
+    @mcp.tool(annotations={"destructiveHint": True})
     def gallery_delete_stills(
         still_indices: list[int], album_name: str | None = None
     ) -> bool:
@@ -618,7 +618,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while deleting stills."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -710,7 +710,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while applying grade."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(
@@ -781,7 +781,7 @@ def register(mcp: FastMCP) -> None:
             raise
         except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve while listing PowerGrade stills."
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed(

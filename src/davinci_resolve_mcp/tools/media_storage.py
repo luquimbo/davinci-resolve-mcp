@@ -37,11 +37,11 @@ def register(mcp: FastMCP) -> None:
             volumes = storage.GetMountedVolumeList()
             return volumes if volumes else []
 
-        except AttributeError:
+        except AttributeError as exc:
             # Stale scripting-bridge reference — Resolve was likely restarted
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except ResolveNotRunning:
             raise
         except Exception as exc:
@@ -72,10 +72,10 @@ def register(mcp: FastMCP) -> None:
             subfolders = storage.GetSubFolderList(volume_path)
             return subfolders if subfolders else []
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except ResolveNotRunning:
             raise
         except Exception as exc:
@@ -107,10 +107,10 @@ def register(mcp: FastMCP) -> None:
             files = storage.GetFileList(folder_path)
             return files if files else []
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except ResolveNotRunning:
             raise
         except Exception as exc:
@@ -148,10 +148,10 @@ def register(mcp: FastMCP) -> None:
             # Extract the display name of each successfully imported clip
             return [item.GetName() for item in items]
 
-        except AttributeError:
+        except AttributeError as exc:
             raise ResolveNotRunning(
-                "Lost connection to Resolve (stale reference). Please retry."
-            )
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
         except ResolveNotRunning:
             raise
         except Exception as exc:
