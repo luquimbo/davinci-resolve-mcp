@@ -1,6 +1,6 @@
-"""Media-pool clip tools — metadata, markers, flags, proxy, and properties.
+"""Media-pool clip tools — metadata, markers, flags, proxy, transcription, and properties.
 
-Provides 16 tools to inspect and modify clips in the current media-pool folder.
+Provides 19 tools to inspect and modify clips in the current media-pool folder.
 Clips are identified by display name; a module-level helper searches the active
 folder's clip list so every tool receives a resolved Resolve MediaPoolItem object.
 """
@@ -519,6 +519,92 @@ def register(mcp: FastMCP) -> None:
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("clip_clear_flags", str(exc)) from exc
+
+    # ==============================================================
+    # Transcription (Resolve 19+)
+    # ==============================================================
+
+    @mcp.tool()
+    def clip_transcribe_audio(clip_name: str) -> bool:
+        """Start audio transcription for a clip.
+
+        Requires DaVinci Resolve 19+ with speech-to-text support enabled.
+
+        Args:
+            clip_name: Name of the clip to transcribe.
+
+        Returns:
+            True if transcription was initiated.
+        """
+        try:
+            clip = _find_clip(clip_name)
+            result: bool = clip.TranscribeAudio()
+            if not result:
+                raise ResolveOperationFailed(
+                    "clip_transcribe_audio",
+                    f"Failed to transcribe clip '{clip_name}'. "
+                    "Ensure Resolve 19+ and speech-to-text is enabled.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"TranscribeAudio may require Resolve 19+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("clip_transcribe_audio", str(exc)) from exc
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def clip_get_transcript(clip_name: str) -> str:
+        """Get the transcript text for a clip.
+
+        Args:
+            clip_name: Name of the clip.
+
+        Returns:
+            The transcript text string, or empty string if not transcribed.
+        """
+        try:
+            clip = _find_clip(clip_name)
+            text = clip.GetTranscriptText()
+            return text if text else ""
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"GetTranscriptText may require Resolve 19+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("clip_get_transcript", str(exc)) from exc
+
+    @mcp.tool(annotations={"destructiveHint": True})
+    def clip_clear_transcript(clip_name: str) -> bool:
+        """Clear the transcript text from a clip.
+
+        Args:
+            clip_name: Name of the clip.
+
+        Returns:
+            True if the transcript was cleared.
+        """
+        try:
+            clip = _find_clip(clip_name)
+            result: bool = clip.ClearTranscriptText()
+            if not result:
+                raise ResolveOperationFailed(
+                    "clip_clear_transcript",
+                    f"Failed to clear transcript on clip '{clip_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"ClearTranscriptText may require Resolve 19+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("clip_clear_transcript", str(exc)) from exc
 
     # ==============================================================
     # Proxy media

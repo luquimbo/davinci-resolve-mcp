@@ -1,6 +1,6 @@
-"""Timeline-item tools — transform, crop, composite, color, flags, and markers.
+"""Timeline-item tools — transform, crop, composite, color, flags, markers, takes, and unique ID.
 
-Provides 18 tools to inspect and modify items (clips) on a timeline track.
+Provides 24 tools to inspect and modify items (clips) on a timeline track.
 Items are identified by display name, track type, and track index.  A module-level
 helper resolves the matching TimelineItem object from the active timeline.
 """
@@ -760,4 +760,239 @@ def register(mcp: FastMCP) -> None:
         except Exception as exc:
             raise ResolveOperationFailed(
                 "item_get_linked_items", str(exc)
+            ) from exc
+
+    # ==============================================================
+    # Unique ID (Resolve 18.5+)
+    # ==============================================================
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def item_get_unique_id(
+        item_name: str,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> str:
+        """Return the unique identifier for a timeline item.
+
+        This ID is stable across project saves and can be used to
+        reference a specific item programmatically.
+
+        Args:
+            item_name:   Name of the item.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            Unique ID string for the item.
+        """
+        try:
+            item = find_item(item_name, track_type, track_index)
+            uid = item.GetUniqueId()
+            return uid if uid else ""
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"GetUniqueId may require Resolve 18.5+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_get_unique_id", str(exc)
+            ) from exc
+
+    # ==============================================================
+    # Takes (Resolve 18+)
+    # ==============================================================
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def item_get_takes_count(
+        item_name: str,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> int:
+        """Return the number of takes on a timeline item.
+
+        Args:
+            item_name:   Name of the item.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            Number of takes available for the item.
+        """
+        try:
+            item = find_item(item_name, track_type, track_index)
+            count = item.GetTakesCount()
+            return count if count else 0
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"GetTakesCount may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_get_takes_count", str(exc)
+            ) from exc
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def item_get_take_by_index(
+        item_name: str,
+        take_index: int,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> dict | None:
+        """Return info about a take at the given 1-based index.
+
+        Args:
+            item_name:   Name of the item.
+            take_index:  1-based index of the take.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            A dict with take info, or None if the index is invalid.
+        """
+        if take_index < 1:
+            raise ResolveOperationFailed(
+                "item_get_take_by_index",
+                "take_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            item = find_item(item_name, track_type, track_index)
+            take = item.GetTakeByIndex(take_index)
+            return take if take else None
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"GetTakeByIndex may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_get_take_by_index", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def item_select_take_by_index(
+        item_name: str,
+        take_index: int,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Select a specific take on a timeline item.
+
+        Args:
+            item_name:   Name of the item.
+            take_index:  1-based index of the take to select.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            True if the take was selected.
+        """
+        if take_index < 1:
+            raise ResolveOperationFailed(
+                "item_select_take_by_index",
+                "take_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            item = find_item(item_name, track_type, track_index)
+            result: bool = item.SelectTakeByIndex(take_index)
+            if not result:
+                raise ResolveOperationFailed(
+                    "item_select_take_by_index",
+                    f"Failed to select take {take_index} on item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"SelectTakeByIndex may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_select_take_by_index", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def item_finalize_take(
+        item_name: str,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Finalize the current take on a timeline item.
+
+        This commits the current take, removing other take options.
+
+        Args:
+            item_name:   Name of the item.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            True if the take was finalized.
+        """
+        try:
+            item = find_item(item_name, track_type, track_index)
+            result: bool = item.FinalizeTake()
+            if not result:
+                raise ResolveOperationFailed(
+                    "item_finalize_take",
+                    f"Failed to finalize take on item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"FinalizeTake may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_finalize_take", str(exc)
+            ) from exc
+
+    @mcp.tool(annotations={"destructiveHint": True})
+    def item_delete_take_by_index(
+        item_name: str,
+        take_index: int,
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Delete a take at the given index on a timeline item.
+
+        Args:
+            item_name:   Name of the item.
+            take_index:  1-based index of the take to delete.
+            track_type:  Track type — "video" or "audio".
+            track_index: 1-based track number.
+
+        Returns:
+            True if the take was deleted.
+        """
+        if take_index < 1:
+            raise ResolveOperationFailed(
+                "item_delete_take_by_index",
+                "take_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            item = find_item(item_name, track_type, track_index)
+            result: bool = item.DeleteTakeByIndex(take_index)
+            if not result:
+                raise ResolveOperationFailed(
+                    "item_delete_take_by_index",
+                    f"Failed to delete take {take_index} on item '{item_name}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"DeleteTakeByIndex may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "item_delete_take_by_index", str(exc)
             ) from exc

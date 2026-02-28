@@ -4,7 +4,7 @@ The most complete MCP server for DaVinci Resolve's Scripting API. Control projec
 
 ## Features
 
-- **158 tools** across 12 domains (playback, project, media storage, media pool, clips, timelines, timeline items, render, color, Fusion, gallery, Fairlight)
+- **175 tools** across 12 domains (playback, project, media storage, media pool, clips, timelines, timeline items, render, color, Fusion, gallery, Fairlight)
 - **3 resources** for quick context (`resolve://system`, `resolve://project`, `resolve://timeline`)
 - **Complete API coverage** of the DaVinci Resolve Scripting API (Phases 1-3)
 - **Pydantic v2 models** for type-safe inputs and outputs
@@ -75,12 +75,12 @@ This prints Resolve version, current project, and timeline info to confirm the s
 | Domain | Module | Tools | Description |
 |--------|--------|------:|-------------|
 | Playback | `playback` | 7 | Page navigation, timecode, playhead position, version info |
-| Project | `project` | 13 | CRUD, settings, import/export (.drp), database folder navigation |
+| Project | `project` | 18 | CRUD, settings, import/export (.drp), database folders, DB info |
 | Media Storage | `media_storage` | 4 | Browse mounted volumes, list files, import to media pool |
 | Media Pool | `media_pool` | 14 | Folder CRUD, clip management, timeline creation, metadata export |
-| Clips | `media_pool_item` | 16 | Clip metadata, properties, colors, markers, flags, proxy linking |
-| Timeline | `timeline` | 22 | CRUD, tracks (add/delete/rename/lock), items, markers, duplication |
-| Timeline Items | `timeline_item` | 18 | Transform, crop, composite, color labels, markers, flags, linking |
+| Clips | `media_pool_item` | 19 | Clip metadata, properties, colors, markers, flags, proxy, transcription |
+| Timeline | `timeline` | 25 | CRUD, tracks, items, markers, export (AAF/EDL/FCPXML), compound clips |
+| Timeline Items | `timeline_item` | 24 | Transform, crop, composite, color, markers, flags, takes, unique ID |
 | Render | `render` | 14 | Formats, codecs, presets, job queue, start/stop, progress monitoring |
 | Color | `color` | 22 | Nodes, LUTs, CDL, grade versions, DRX application, color groups |
 | Fusion | `fusion` | 11 | Compositions CRUD, generators, titles, tool listing |
@@ -144,7 +144,7 @@ uv run pytest -m integration
 
 ## Scope
 
-All 158 tools ship in v0.1.0 — covering core editing, color grading, Fusion compositions, gallery stills, and Fairlight audio.
+All 175 tools ship in v0.1.0 — covering core editing, color grading, Fusion compositions, gallery stills, Fairlight audio, timeline export, compound clips, transcription, and takes management.
 
 ## Auto-Generated Tool Reference
 

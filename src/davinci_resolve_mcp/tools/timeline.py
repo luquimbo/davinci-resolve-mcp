@@ -1,16 +1,18 @@
-"""Timeline tools — CRUD, tracks, items, markers, and clip operations.
+"""Timeline tools — CRUD, tracks, items, markers, export, and clip operations.
 
-Provides full control over DaVinci Resolve timelines: querying and switching the
-current timeline, renaming, inspecting frame ranges, managing video/audio/subtitle
-tracks (add, delete, rename, enable, lock), listing items within tracks with
-pagination, appending and deleting clips, duplicating timelines, and managing
-frame markers.
+Provides 25 tools for full control over DaVinci Resolve timelines: querying and
+switching the current timeline, renaming, inspecting frame ranges, managing
+video/audio/subtitle tracks (add, delete, rename, enable, lock), listing items
+within tracks with pagination, appending and deleting clips, duplicating timelines,
+managing frame markers, exporting to various formats (AAF/EDL/FCPXML), and
+creating compound/Fusion clips.
 """
 
 from __future__ import annotations
 
 from fastmcp import FastMCP
 
+from ..constants import ExportType, TimelineExportSubtype
 from ..exceptions import ResolveNotRunning, ResolveOperationFailed
 from ..resolve_api import ResolveAPI
 from ._helpers import VALID_TRACK_TYPES
@@ -984,4 +986,228 @@ def register(mcp: FastMCP) -> None:
         except Exception as exc:
             raise ResolveOperationFailed(
                 "timeline_delete_marker", str(exc)
+            ) from exc
+
+    # ------------------------------------------------------------------
+    # Timeline export (AAF, EDL, FCPXML, etc.)
+    # ------------------------------------------------------------------
+
+    _VALID_EXPORT_TYPES = {t.value for t in ExportType}
+    _VALID_EXPORT_SUBTYPES = {t.value for t in TimelineExportSubtype}
+
+    @mcp.tool()
+    def timeline_export(
+        file_path: str,
+        export_type: str = "AAF",
+        export_subtype: str = "",
+    ) -> bool:
+        """Export the current timeline to a file (AAF, EDL, FCPXML, etc.).
+
+        Args:
+            file_path: Absolute destination path for the exported file.
+            export_type: Format to export. One of: "AAF", "DRT", "EDL",
+                "FCPXML", "HDR10 Profile A", "HDR10 Profile B", "OTIO",
+                "Text CSV", "Text Tab". Defaults to "AAF".
+            export_subtype: Sub-type for EDL exports. One of: "" (none),
+                "SMPTE", "Avid", "CMX 3600". Defaults to "".
+
+        Returns:
+            True if the export succeeded.
+        """
+        if export_type not in _VALID_EXPORT_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_export",
+                f"Invalid export_type '{export_type}'. "
+                f"Must be one of: {', '.join(sorted(_VALID_EXPORT_TYPES))}",
+            )
+        if export_subtype not in _VALID_EXPORT_SUBTYPES:
+            raise ResolveOperationFailed(
+                "timeline_export",
+                f"Invalid export_subtype '{export_subtype}'. "
+                f"Must be one of: {', '.join(repr(s) for s in sorted(_VALID_EXPORT_SUBTYPES))}",
+            )
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_export", "No timeline is currently open."
+                )
+            result: bool = tl.ExportAsFile(file_path, export_type, export_subtype)
+            if not result:
+                raise ResolveOperationFailed(
+                    "timeline_export",
+                    f"Failed to export timeline as {export_type} to '{file_path}'.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"ExportAsFile may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("timeline_export", str(exc)) from exc
+
+    # ------------------------------------------------------------------
+    # Compound clips and Fusion clips
+    # ------------------------------------------------------------------
+
+    @mcp.tool()
+    def timeline_create_compound_clip(
+        item_names: list[str],
+        track_type: str = "video",
+        track_index: int = 1,
+        clip_name: str = "",
+    ) -> bool:
+        """Create a compound clip from timeline items on a specific track.
+
+        A compound clip merges multiple timeline items into one editable unit.
+
+        Args:
+            item_names: Names of timeline items to combine.
+            track_type: Track type to search for items ("video", "audio",
+                "subtitle"). Defaults to "video".
+            track_index: 1-based track index. Defaults to 1.
+            clip_name: Optional name for the compound clip. If empty,
+                Resolve generates a default name.
+
+        Returns:
+            True if the compound clip was created.
+        """
+        if track_type not in VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_create_compound_clip",
+                f"Invalid track_type '{track_type}'. "
+                f"Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed(
+                "timeline_create_compound_clip",
+                "track_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_create_compound_clip",
+                    "No timeline is currently open.",
+                )
+
+            # Find matching items on the track
+            all_items = tl.GetItemListInTrack(track_type, track_index)
+            if not all_items:
+                raise ResolveOperationFailed(
+                    "timeline_create_compound_clip",
+                    f"No items found on {track_type} track {track_index}.",
+                )
+
+            names_set = set(item_names)
+            items_to_merge = [
+                item for item in all_items if item.GetName() in names_set
+            ]
+            if not items_to_merge:
+                raise ResolveOperationFailed(
+                    "timeline_create_compound_clip",
+                    f"None of the specified items were found on "
+                    f"{track_type} track {track_index}.",
+                )
+
+            clip_info = {}
+            if clip_name:
+                clip_info["name"] = clip_name
+
+            result = tl.CreateCompoundClip(items_to_merge, clip_info)
+            if not result:
+                raise ResolveOperationFailed(
+                    "timeline_create_compound_clip",
+                    "Resolve failed to create compound clip.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"CreateCompoundClip may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "timeline_create_compound_clip", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def timeline_create_fusion_clip(
+        item_names: list[str],
+        track_type: str = "video",
+        track_index: int = 1,
+    ) -> bool:
+        """Create a Fusion clip from timeline items on a specific track.
+
+        A Fusion clip wraps selected items into a single Fusion composition
+        that can be opened and edited in the Fusion page.
+
+        Args:
+            item_names: Names of timeline items to combine.
+            track_type: Track type to search ("video", "audio", "subtitle").
+                Defaults to "video".
+            track_index: 1-based track index. Defaults to 1.
+
+        Returns:
+            True if the Fusion clip was created.
+        """
+        if track_type not in VALID_TRACK_TYPES:
+            raise ResolveOperationFailed(
+                "timeline_create_fusion_clip",
+                f"Invalid track_type '{track_type}'. "
+                f"Must be one of: {', '.join(sorted(VALID_TRACK_TYPES))}",
+            )
+        if track_index < 1:
+            raise ResolveOperationFailed(
+                "timeline_create_fusion_clip",
+                "track_index must be >= 1 (1-based indexing).",
+            )
+        try:
+            api = ResolveAPI.get_instance()
+            tl = api.timeline
+            if tl is None:
+                raise ResolveOperationFailed(
+                    "timeline_create_fusion_clip",
+                    "No timeline is currently open.",
+                )
+
+            all_items = tl.GetItemListInTrack(track_type, track_index)
+            if not all_items:
+                raise ResolveOperationFailed(
+                    "timeline_create_fusion_clip",
+                    f"No items found on {track_type} track {track_index}.",
+                )
+
+            names_set = set(item_names)
+            items_to_fuse = [
+                item for item in all_items if item.GetName() in names_set
+            ]
+            if not items_to_fuse:
+                raise ResolveOperationFailed(
+                    "timeline_create_fusion_clip",
+                    f"None of the specified items were found on "
+                    f"{track_type} track {track_index}.",
+                )
+
+            result = tl.CreateFusionClip(items_to_fuse)
+            if not result:
+                raise ResolveOperationFailed(
+                    "timeline_create_fusion_clip",
+                    "Resolve failed to create Fusion clip.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"CreateFusionClip may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "timeline_create_fusion_clip", str(exc)
             ) from exc

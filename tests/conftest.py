@@ -195,6 +195,15 @@ class MockMediaPoolItem:
     def LinkProxyMedia(self, path: str) -> bool:
         return True
 
+    def TranscribeAudio(self) -> bool:
+        return True
+
+    def GetTranscriptText(self) -> str:
+        return "Hello world, this is a test transcript."
+
+    def ClearTranscriptText(self) -> bool:
+        return True
+
 
 class MockFolder:
     """Simulates a Media Pool folder with clips and subfolders."""
@@ -371,6 +380,26 @@ class MockTimelineItem:
     def ApplyGradeFromGalleryStill(self, still: Any) -> bool:
         return True
 
+    def GetUniqueId(self) -> str:
+        return "unique-item-001"
+
+    def GetTakesCount(self) -> int:
+        return 2
+
+    def GetTakeByIndex(self, idx: int) -> dict | None:
+        if idx <= 2:
+            return {"startFrame": 0, "endFrame": 100, "mediaPoolItem": None}
+        return None
+
+    def SelectTakeByIndex(self, idx: int) -> bool:
+        return idx <= 2
+
+    def FinalizeTake(self) -> bool:
+        return True
+
+    def DeleteTakeByIndex(self, idx: int) -> bool:
+        return idx <= 2
+
 
 class MockTimeline:
     """Simulates a DaVinci Resolve timeline object."""
@@ -455,6 +484,15 @@ class MockTimeline:
 
     def GrabStill(self) -> bool:
         return True
+
+    def ExportAsFile(self, path: str, export_type: str, export_subtype: str = "") -> bool:
+        return True
+
+    def CreateCompoundClip(self, items: list, clip_info: dict) -> Any:
+        return MockTimelineItem("Compound Clip")
+
+    def CreateFusionClip(self, items: list) -> Any:
+        return MockTimelineItem("Fusion Clip")
 
 
 class MockMediaPool:
@@ -658,6 +696,21 @@ class MockProjectManager:
     def OpenFolder(self, name: str) -> bool:
         return True
 
+    def CreateFolder(self, name: str) -> bool:
+        return True
+
+    def DeleteFolder(self, name: str) -> bool:
+        return True
+
+    def GotoRootFolder(self) -> bool:
+        return True
+
+    def GotoParentFolder(self) -> bool:
+        return True
+
+    def GetCurrentDatabase(self) -> dict:
+        return {"DbType": "Disk", "DbName": "Local Database"}
+
 
 class MockResolve:
     """Top-level mock of the DaVinci Resolve scripting bridge.
@@ -777,15 +830,17 @@ async def mcp_server(mock_resolve: MockResolve) -> Client:
         timeline_item,
         render,
         color,
+        fusion,
         gallery,
+        fairlight,
     )
+    from davinci_resolve_mcp.resources import system_info, project_info, timeline_info
 
     # Create a fresh MCP server for this test session
     mcp = FastMCP("DaVinci Resolve Test")
 
-    # Register all available tool modules
-    # Phase 1: Core modules
-    modules = [
+    # Register all tool modules
+    tool_modules = [
         playback,
         project,
         media_storage,
@@ -795,19 +850,17 @@ async def mcp_server(mock_resolve: MockResolve) -> Client:
         timeline_item,
         render,
         color,
+        fusion,
         gallery,
+        fairlight,
     ]
 
-    # Phase 2: Optional modules (fusion, fairlight) — register if they exist
-    for mod_name in ("fusion", "fairlight"):
-        try:
-            mod = importlib.import_module(f"davinci_resolve_mcp.tools.{mod_name}")
-            modules.append(mod)
-        except ImportError:
-            pass  # Module not yet implemented; skip gracefully
-
-    for mod in modules:
+    for mod in tool_modules:
         mod.register(mcp)
+
+    # Register resource modules
+    for res_mod in [system_info, project_info, timeline_info]:
+        res_mod.register(mcp)
 
     # Create and yield a connected in-memory client
     async with Client(mcp) as client:

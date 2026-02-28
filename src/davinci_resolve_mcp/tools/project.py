@@ -437,3 +437,153 @@ def register(mcp: FastMCP) -> None:
             ) from exc
         except Exception as exc:
             raise ResolveOperationFailed("project_folder_open", str(exc)) from exc
+
+    @mcp.tool()
+    def project_folder_create(folder_name: str) -> bool:
+        """Create a new folder in the current database folder.
+
+        Args:
+            folder_name: Name of the folder to create.
+
+        Returns:
+            True if the folder was created.
+        """
+        if not folder_name or not folder_name.strip():
+            raise ResolveOperationFailed(
+                "project_folder_create", "Folder name cannot be empty."
+            )
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            result: bool = pm.CreateFolder(folder_name)
+            if not result:
+                raise ResolveOperationFailed(
+                    "project_folder_create",
+                    f"Could not create folder '{folder_name}'. "
+                    "It may already exist.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("project_folder_create", str(exc)) from exc
+
+    @mcp.tool(annotations={"destructiveHint": True})
+    def project_folder_delete(folder_name: str) -> bool:
+        """Delete a folder from the current database folder.
+
+        The folder must be empty (no projects inside).
+
+        Args:
+            folder_name: Name of the folder to delete.
+
+        Returns:
+            True if the folder was deleted.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            result: bool = pm.DeleteFolder(folder_name)
+            if not result:
+                raise ResolveOperationFailed(
+                    "project_folder_delete",
+                    f"Could not delete folder '{folder_name}'. "
+                    "Ensure it exists and is empty.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed("project_folder_delete", str(exc)) from exc
+
+    @mcp.tool()
+    def project_folder_goto_root() -> bool:
+        """Navigate to the root of the project database.
+
+        Returns:
+            True if navigation to root succeeded.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            result: bool = pm.GotoRootFolder()
+            if not result:
+                raise ResolveOperationFailed(
+                    "project_folder_goto_root",
+                    "Could not navigate to root folder.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "project_folder_goto_root", str(exc)
+            ) from exc
+
+    @mcp.tool()
+    def project_folder_goto_parent() -> bool:
+        """Navigate up one level in the project database folder hierarchy.
+
+        Returns:
+            True if navigation succeeded. False if already at root.
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            result: bool = pm.GotoParentFolder()
+            if not result:
+                raise ResolveOperationFailed(
+                    "project_folder_goto_parent",
+                    "Could not navigate to parent folder. "
+                    "You may already be at the root.",
+                )
+            return True
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"Lost connection to Resolve (stale reference: {exc}). Please retry."
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "project_folder_goto_parent", str(exc)
+            ) from exc
+
+    # ------------------------------------------------------------------
+    # Database info
+    # ------------------------------------------------------------------
+
+    @mcp.tool(annotations={"readOnlyHint": True})
+    def project_get_database() -> dict:
+        """Return info about the current project database.
+
+        Returns:
+            A dict with database info (DbType, DbName, IpAddress if remote).
+        """
+        try:
+            api = ResolveAPI.get_instance()
+            pm = api.project_manager
+            db_info = pm.GetCurrentDatabase()
+            return db_info if isinstance(db_info, dict) else {}
+        except (ResolveNotRunning, ResolveOperationFailed):
+            raise
+        except AttributeError as exc:
+            raise ResolveNotRunning(
+                f"GetCurrentDatabase may require Resolve 18+. {exc}"
+            ) from exc
+        except Exception as exc:
+            raise ResolveOperationFailed(
+                "project_get_database", str(exc)
+            ) from exc
