@@ -6,7 +6,7 @@ Thank you for your interest in contributing. This guide covers the development w
 
 ```bash
 # Clone and install with dev dependencies
-git clone https://github.com/lucasacadevor/davinci-resolve-mcp.git
+git clone https://github.com/luquimbo/davinci-resolve-mcp.git
 cd davinci-resolve-mcp
 uv sync --dev
 

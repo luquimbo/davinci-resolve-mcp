@@ -30,7 +30,7 @@ uv pip install davinci-resolve-mcp
 ### Option C: From source (development)
 
 ```bash
-git clone https://github.com/lucasacadevor/davinci-resolve-mcp.git
+git clone https://github.com/luquimbo/davinci-resolve-mcp.git
 cd davinci-resolve-mcp
 uv sync
 ```

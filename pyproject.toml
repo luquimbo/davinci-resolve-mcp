@@ -38,9 +38,9 @@ dev = [
 davinci-resolve-mcp = "davinci_resolve_mcp.server:main"
 
 [project.urls]
-Homepage = "https://github.com/lucasacadevor/davinci-resolve-mcp"
-Repository = "https://github.com/lucasacadevor/davinci-resolve-mcp"
-Issues = "https://github.com/lucasacadevor/davinci-resolve-mcp/issues"
+Homepage = "https://github.com/luquimbo/davinci-resolve-mcp"
+Repository = "https://github.com/luquimbo/davinci-resolve-mcp"
+Issues = "https://github.com/luquimbo/davinci-resolve-mcp/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/davinci_resolve_mcp"]

@@ -56,7 +56,7 @@ See [docs/CLAUDE_DESKTOP.md](docs/CLAUDE_DESKTOP.md) for a detailed setup guide 
 ### Development Setup
 
 ```bash
-git clone https://github.com/lucasacadevor/davinci-resolve-mcp.git
+git clone https://github.com/luquimbo/davinci-resolve-mcp.git
 cd davinci-resolve-mcp
 uv sync --dev
 uv run davinci-resolve-mcp
