@@ -29,14 +29,14 @@ src/davinci_resolve_mcp/
 |
 |-- tools/                 One module per Resolve API domain. Each exports register(mcp).
 |   |-- playback.py            7 tools: page nav, timecode, version
-|   |-- project.py            13 tools: CRUD, settings, import/export, folders
+|   |-- project.py            21 tools: CRUD, settings, import/export, folders, archive, DB
 |   |-- media_storage.py       4 tools: volumes, files, import to pool
 |   |-- media_pool.py         14 tools: folders, clips, timelines, metadata
-|   |-- media_pool_item.py    16 tools: clip metadata, properties, markers, flags
-|   |-- timeline.py           22 tools: CRUD, tracks, items, markers, duplication
-|   |-- timeline_item.py      18 tools: transform, crop, composite, markers, flags
+|   |-- media_pool_item.py    21 tools: clip metadata, properties, markers, flags, proxy, transcription
+|   |-- timeline.py           29 tools: CRUD, tracks, items, markers, export, compound clips, settings
+|   |-- timeline_item.py      27 tools: transform, crop, composite, markers, flags, takes, stabilize
 |   |-- render.py             14 tools: formats, codecs, presets, jobs, rendering
-|   |-- color.py              22 tools: nodes, LUTs, CDL, versions, groups
+|   |-- color.py              24 tools: nodes, LUTs, CDL, versions, groups, node labels
 |   |-- fusion.py             11 tools: compositions, generators, titles
 |   |-- gallery.py            14 tools: albums, stills, PowerGrades
 |   |-- fairlight.py           3 tools: audio insertion, presets
